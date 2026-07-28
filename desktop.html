@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>蜀川鑫工作台 · 桌面版</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --primary: #2563eb; --primary-light: #dbeafe; --success: #16a34a; --success-light: #dcfce7;
+  --warning: #f59e0b; --warning-light: #fef3c7; --danger: #dc2626; --danger-light: #fee2e2;
+  --bg: #f1f5f9; --card: #ffffff; --text: #1e293b; --text-light: #64748b; --border: #e2e8f0;
+  --sidebar-bg: #1e293b; --sidebar-text: #cbd5e1; --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08); --shadow-lg: 0 10px 25px rgba(0,0,0,.08);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Segoe UI','Microsoft YaHei',sans-serif; background:var(--bg); color:var(--text); display:flex; min-height:100vh; }
+
+/* Login */
+.login-overlay { position:fixed; top:0;left:0;right:0;bottom:0; background:var(--bg); z-index:1000; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.login-card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow-lg); padding:32px; width:100%; max-width:380px; }
+.login-logo { text-align:center; margin-bottom:24px; }
+.login-logo .logo-icon { font-size:48px; display:block; margin-bottom:8px; }
+.login-logo h2 { font-size:22px; font-weight:700; color:var(--primary); }
+.login-logo p { font-size:12px; color:var(--text-light); margin-top:4px; }
+.login-tabs { display:flex; gap:4px; background:var(--bg); padding:3px; border-radius:10px; margin-bottom:16px; }
+.login-tab { flex:1; padding:8px; text-align:center; font-size:13px; font-weight:500; border-radius:8px; cursor:pointer; transition:.15s; color:var(--text-light); }
+.login-tab.active { background:var(--card); color:var(--primary); box-shadow:0 1px 3px rgba(0,0,0,.08); }
+.login-fg { margin-bottom:14px; }
+.login-fg label { display:block; font-size:12px; color:var(--text-light); margin-bottom:5px; font-weight:500; }
+.login-fg input { width:100%; padding:11px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:15px; outline:none; background:var(--bg); color:var(--text); }
+.login-fg input:focus { border-color:var(--primary); }
+.login-btn { width:100%; padding:12px; background:var(--primary); color:#fff; border:none; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; margin-top:4px; }
+.login-btn:active { opacity:.85; }
+.login-error { font-size:12px; color:var(--danger); text-align:center; min-height:18px; margin:8px 0; }
+.login-footer { text-align:center; margin-top:14px; font-size:11px; color:var(--text-light); }
+.login-footer a { color:var(--primary); cursor:pointer; text-decoration:underline; }
+
+/* Sidebar */
+.sidebar { width:220px; background:var(--sidebar-bg); color:var(--sidebar-text); display:flex; flex-direction:column; position:fixed; height:100vh; top:0; left:0; z-index:100; }
+.sidebar-header { padding:20px; text-align:center; border-bottom:1px solid rgba(255,255,255,.1); }
+.sidebar-header h1 { font-size:18px; color:#fff; font-weight:700; }
+.sidebar-header p { font-size:11px; color:var(--text-light); margin-top:4px; }
+.nav { flex:1; padding:8px 0; overflow-y:auto; }
+.nav-item { display:flex; align-items:center; gap:10px; padding:10px 20px; cursor:pointer; transition:.2s; border-left:3px solid transparent; font-size:13px; }
+.nav-item:hover { background:rgba(255,255,255,.05); color:#fff; }
+.nav-item.active { background:rgba(37,99,235,.15); color:#fff; border-left-color:var(--primary); }
+.nav-item svg { width:18px; height:18px; flex-shrink:0; }
+.sidebar-footer { padding:12px 20px; border-top:1px solid rgba(255,255,255,.1); font-size:10px; color:var(--text-light); display:flex; justify-content:space-between; }
+.sidebar-footer .logout { color:var(--danger); cursor:pointer; }
+
+/* Main */
+.main { flex:1; margin-left:220px; padding:24px; min-height:100vh; }
+.page { display:none; }
+.page.active { display:block; }
+.page-header { margin-bottom:24px; }
+.page-header h2 { font-size:22px; font-weight:700; }
+.page-header p { color:var(--text-light); font-size:13px; margin-top:4px; }
+
+/* Cards */
+.card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:20px; margin-bottom:16px; }
+.card-title { font-size:15px; font-weight:600; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; }
+
+/* Stats */
+.stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:24px; }
+.stat-card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px; position:relative; overflow:hidden; }
+.stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:4px; }
+.stat-card.blue::before { background:var(--primary); }
+.stat-card.green::before { background:var(--success); }
+.stat-card.amber::before { background:var(--warning); }
+.stat-card.red::before { background:var(--danger); }
+.stat-label { font-size:12px; color:var(--text-light); margin-bottom:6px; }
+.stat-value { font-size:26px; font-weight:700; }
+.stat-sub { font-size:11px; color:var(--text-light); margin-top:4px; }
+
+/* Tables */
+table { width:100%; border-collapse:collapse; font-size:12px; }
+th { text-align:left; padding:8px 10px; background:var(--bg); font-weight:600; color:var(--text-light); border-bottom:2px solid var(--border); white-space:nowrap; }
+td { padding:8px 10px; border-bottom:1px solid var(--border); }
+tr:hover td { background:#f8fafc; }
+
+/* Badges */
+.badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:600; white-space:nowrap; }
+.badge-blue { background:var(--primary-light); color:var(--primary); }
+.badge-green { background:var(--success-light); color:var(--success); }
+.badge-amber { background:var(--warning-light); color:var(--warning); }
+.badge-red { background:var(--danger-light); color:var(--danger); }
+.badge-gray { background:#f1f5f9; color:var(--text-light); }
+
+/* Buttons */
+.btn { display:inline-flex; align-items:center; gap:4px; padding:6px 14px; border-radius:8px; border:none; cursor:pointer; font-size:12px; font-weight:500; transition:.2s; }
+.btn-primary { background:var(--primary); color:#fff; }
+.btn-primary:hover { background:#1d4ed8; }
+.btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+.btn-outline:hover { background:var(--bg); }
+.btn-sm { padding:3px 8px; font-size:11px; }
+.btn-danger { background:var(--danger); color:#fff; }
+
+/* Kanban */
+.kanban { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+.kanban-col { background:var(--bg); border-radius:var(--radius); padding:12px; min-height:150px; }
+.kanban-col h4 { font-size:12px; font-weight:600; margin-bottom:10px; display:flex; justify-content:space-between; }
+.kanban-card { background:#fff; border-radius:8px; padding:10px; margin-bottom:8px; box-shadow:var(--shadow); border-left:3px solid var(--primary); font-size:12px; }
+.kanban-card h5 { font-size:12px; font-weight:600; margin-bottom:4px; }
+.kanban-card p { font-size:11px; color:var(--text-light); }
+.kanban-card .kc-meta { display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:11px; }
+.kanban-card .kc-actions { margin-top:6px; display:flex; gap:4px; }
+
+/* Progress */
+.progress-bar { width:100%; height:4px; background:var(--bg); border-radius:2px; overflow:hidden; }
+.progress-fill { height:100%; background:var(--primary); border-radius:2px; transition:width .3s; }
+
+/* Forms */
+.form-row { display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+.form-group { flex:1; min-width:180px; }
+.form-group label { display:block; font-size:11px; color:var(--text-light); margin-bottom:4px; font-weight:500; }
+.form-group input, .form-group select, .form-group textarea { width:100%; padding:7px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px; outline:none; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--primary); }
+
+/* Grid */
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+
+/* Charts */
+.chart-container { position:relative; height:250px; }
+.chart-container-lg { position:relative; height:320px; }
+
+/* Todo */
+.todo-item { display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid var(--border); }
+.todo-item:last-child { border-bottom:none; }
+.todo-checkbox { width:18px; height:18px; cursor:pointer; accent-color:var(--primary); }
+.todo-text { flex:1; font-size:13px; }
+.todo-item.done .todo-text { text-decoration:line-through; color:var(--text-light); }
+
+/* Hot topics */
+.hot-item { padding:10px; border-bottom:1px solid var(--border); display:flex; gap:10px; }
+.hot-rank { width:22px; height:22px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; flex-shrink:0; }
+.hot-rank.r1 { background:#dc2626; } .hot-rank.r2 { background:#f59e0b; } .hot-rank.r3 { background:#f97316; }
+
+/* Account cards */
+.acct-card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px; display:flex; align-items:center; gap:12px; }
+.acct-icon { width:42px; height:42px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+.acct-info { flex:1; }
+.acct-info h5 { font-size:13px; font-weight:600; }
+.acct-info p { font-size:11px; color:var(--text-light); }
+.acct-stats { text-align:right; }
+.acct-stats .num { font-size:18px; font-weight:700; }
+.acct-stats .label { font-size:10px; color:var(--text-light); }
+
+/* Modal */
+.modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.4); z-index:500; justify-content:center; align-items:center; }
+.modal-overlay.show { display:flex; }
+.modal { background:#fff; border-radius:var(--radius); padding:24px; width:90%; max-width:520px; max-height:90vh; overflow-y:auto; }
+.modal h3 { font-size:16px; font-weight:600; margin-bottom:16px; }
+.modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+
+/* KB cards */
+.kb-card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:20px; text-align:center; cursor:pointer; transition:.2s; border:2px solid transparent; }
+.kb-card:hover { border-color:var(--primary); transform:translateY(-2px); box-shadow:var(--shadow-lg); }
+.kb-card .kb-icon { font-size:36px; margin-bottom:10px; }
+.kb-card h4 { font-size:15px; font-weight:600; margin-bottom:6px; }
+
+/* Search */
+.search-box { display:flex; gap:8px; margin-bottom:16px; }
+.search-box input { flex:1; padding:10px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:14px; outline:none; }
+.search-box input:focus { border-color:var(--primary); }
+.search-box button { padding:10px 20px; border-radius:10px; border:none; background:var(--primary); color:#fff; font-size:14px; cursor:pointer; font-weight:500; }
+
+/* Profile */
+.profile-card { background:linear-gradient(135deg,#2563eb,#1d4ed8); border-radius:var(--radius); padding:20px; color:#fff; margin-bottom:16px; display:flex; align-items:center; gap:16px; }
+.profile-avatar { width:56px; height:56px; border-radius:50%; background:rgba(255,255,255,.15); display:flex; align-items:center; justify-content:center; font-size:28px; flex-shrink:0; }
+.profile-info h3 { font-size:18px; font-weight:700; }
+.profile-info p { font-size:12px; opacity:.8; margin-top:2px; }
+
+/* Section divider */
+.section-divider { height:1px; background:var(--border); margin:16px 0; }
+
+/* Toast */
+.toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:#1e293b; color:#fff; padding:10px 24px; border-radius:20px; font-size:12px; z-index:600; animation:fadeIn .3s; pointer-events:none; }
+@keyframes fadeIn { from{opacity:0;transform:translateX(-50%) translateY(10px);} to{opacity:1;transform:translateX(-50%) translateY(0);} }
+
+/* Responsive */
+@media(max-width:1024px){ .grid-2,.grid-3,.kanban{ grid-template-columns:1fr; } }
+@media(max-width:768px){ .sidebar{ width:60px; } .sidebar-header h1,.sidebar-header p,.nav-item span,.sidebar-footer span{ display:none; } .main{ margin-left:60px; } }
+</style>
+</head>
+<body>
+
+<!-- Login Overlay -->
+<div class="login-overlay" id="loginOverlay">
+<div class="login-card">
+<div class="login-logo"><span class="logo-icon">🏭</span><h2>蜀川鑫工作台</h2><p>CNC精密加工 · 注塑模具 · 桌面管理版</p></div>
+<div class="login-tabs"><div class="login-tab active" onclick="switchLoginTab('login')">登录</div><div class="login-tab" onclick="switchLoginTab('register')">注册</div></div>
+<div class="login-error" id="loginError"></div>
+<div class="login-form" id="loginForm">
+  <div class="login-fg"><label>用户名</label><input id="l_username" type="text" placeholder="请输入用户名" autocomplete="username"></div>
+  <div class="login-fg"><label>密码</label><input id="l_password" type="password" placeholder="请输入密码" autocomplete="current-password"></div>
+  <button class="login-btn" onclick="handleLogin()">登 录</button>
+</div>
+<div class="login-form" id="registerForm" style="display:none;">
+  <div class="login-fg"><label>用户名</label><input id="r_username" type="text" placeholder="2-30个字符" autocomplete="username"></div>
+  <div class="login-fg"><label>密码</label><input id="r_password" type="password" placeholder="至少6个字符" autocomplete="new-password"></div>
+  <div class="login-fg"><label>确认密码</label><input id="r_password2" type="password" autocomplete="new-password"></div>
+  <button class="login-btn" onclick="handleRegister()">注 册</button>
+</div>
+<div class="login-footer"><span id="loginFooterText">还没有账号？</span> <a onclick="switchLoginTab('register')">立即注册</a></div>
+</div></div>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar" style="display:none;">
+  <div class="sidebar-header"><h1>蜀川鑫工作台</h1><p>CNC · 注塑模具 · 桌面版</p></div>
+  <div class="nav">
+    <div class="nav-item active" data-page="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>概览首页</span></div>
+    <div class="nav-item" data-page="projects"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>项目管理</span></div>
+    <div class="nav-item" data-page="finance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span>财务管理</span></div>
+    <div class="nav-item" data-page="customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg><span>客户与员工</span></div>
+    <div class="nav-item" data-page="media"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span>自媒体运营</span></div>
+    <div class="nav-item" data-page="knowledge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg><span>知识库</span></div>
+    <div class="nav-item" data-page="personal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/></svg><span>个人工作区</span></div>
+  </div>
+  <div class="sidebar-footer">
+    <span id="sidebarUser"></span>
+    <span class="logout" onclick="handleLogout()">退出</span>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main" id="mainArea" style="display:none;">
+
+<!-- Overview -->
+<div class="page active" id="page-overview">
+  <div class="page-header"><h2>概览首页</h2><p id="headerDate"></p></div>
+  <div class="stat-grid" id="statGrid"></div>
+  <div class="grid-2">
+    <div class="card"><div class="card-title"><span>今日待办</span></div><div id="ovTodos"></div></div>
+    <div class="card"><div class="card-title"><span>近期项目</span></div><div id="ovProjects"></div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><div class="card-title"><span>月度收支趋势</span></div><div class="chart-container-lg"><canvas id="chartFinance"></canvas></div></div>
+    <div class="card"><div class="card-title"><span>自媒体数据</span></div><div class="chart-container-lg"><canvas id="chartMedia"></canvas></div></div>
+  </div>
+</div>
+
+<!-- Projects -->
+<div class="page" id="page-projects">
+  <div class="page-header"><h2>项目管理</h2><p>看板视图 · 跟踪项目进度</p></div>
+  <div class="card"><div class="card-title"><span>项目看板</span><button class="btn btn-primary" onclick="openModal('project')">+ 新建项目</button></div>
+    <div class="kanban" id="kanbanBoard"></div>
+  </div>
+  <div class="card"><div class="card-title"><span>设备状态</span><button class="btn btn-outline btn-sm" onclick="openModal('equipment')">+ 添加设备</button></div>
+    <div id="equipmentList"></div>
+  </div>
+</div>
+
+<!-- Finance -->
+<div class="page" id="page-finance">
+  <div class="page-header"><h2>财务管理</h2><p>收支流水 · 月度分析 · 年度汇总</p></div>
+  <div class="stat-grid" id="finYearStats"></div>
+  <div class="grid-2">
+    <div class="card"><div class="card-title"><span>月度收支趋势</span></div><div class="chart-container-lg"><canvas id="chartFinMonth"></canvas></div></div>
+    <div class="card"><div class="card-title"><span>收入构成</span></div><div class="chart-container"><canvas id="chartFinPie"></canvas></div></div>
+  </div>
+  <div class="card"><div class="card-title"><span>收支流水</span><button class="btn btn-primary" onclick="openModal('transaction')">+ 记一笔</button></div>
+    <div id="financeTable"></div>
+  </div>
+</div>
+
+<!-- Customers & Employees -->
+<div class="page" id="page-customers">
+  <div class="page-header"><h2>客户与员工管理</h2><p>客户结算追踪 · 员工分配</p></div>
+  <div class="card"><div class="card-title"><span>客户管理</span><button class="btn btn-primary" onclick="openModal('customer')">+ 添加客户</button></div>
+    <div style="overflow-x:auto;"><table><thead><tr><th>客户</th><th>公司</th><th>电话</th><th>订单数</th><th>累计金额</th><th>已付款</th><th>未付款</th><th>操作</th></tr></thead><tbody id="customerTable"></tbody></table></div>
+  </div>
+  <div class="card"><div class="card-title"><span>员工管理</span><button class="btn btn-primary" onclick="openModal('employee')">+ 添加员工</button></div>
+    <div style="overflow-x:auto;"><table><thead><tr><th>姓名</th><th>岗位</th><th>电话</th><th>状态</th><th>任务</th><th>操作</th></tr></thead><tbody id="employeeTable"></tbody></table></div>
+  </div>
+</div>
+
+<!-- Media -->
+<div class="page" id="page-media">
+  <div class="page-header"><h2>自媒体运营</h2><p>账号矩阵 · 热门追踪 · 数据趋势</p></div>
+  <div class="card"><div class="card-title"><span>账号矩阵</span><button class="btn btn-primary" onclick="openModal('account')">+ 添加账号</button></div>
+    <div class="grid-3" id="accountGrid"></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><div class="card-title"><span>热门视频</span><button class="btn btn-outline btn-sm" onclick="openModal('hotVideo')">+ 添加</button></div>
+      <div id="hotVideosList"></div>
+    </div>
+    <div class="card"><div class="card-title"><span>运营建议</span><button class="btn btn-outline btn-sm" onclick="openModal('advice')">+ 添加</button></div>
+      <div id="adviceList" style="max-height:320px;overflow-y:auto;"></div>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><div class="card-title"><span>每日数据</span><button class="btn btn-outline btn-sm" onclick="openModal('mediaData')">+ 记录</button></div>
+      <div class="chart-container-lg"><canvas id="chartMediaDaily"></canvas></div>
+    </div>
+    <div class="card"><div class="card-title"><span>选题管理</span><button class="btn btn-outline btn-sm" onclick="openModal('topic')">+ 添加</button></div>
+      <div style="max-height:320px;overflow-y:auto;"><table><thead><tr><th>日期</th><th>平台</th><th>选题</th><th>类型</th><th>状态</th></tr></thead><tbody id="topicTable"></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- Knowledge -->
+<div class="page" id="page-knowledge">
+  <div class="page-header"><h2>知识库</h2><p>机械制造 · 工作流程 · 技术文档 · AI搜索</p></div>
+  <div class="card"><div class="card-title"><span>🔍 AI智能搜索</span></div>
+    <div class="search-box"><input id="kbSearchInput" placeholder="搜索知识库，或输入问题由DeepSeek AI回答..." onkeydown="if(event.key==='Enter')searchKB()"><button onclick="searchKB()">搜索</button></div>
+    <div id="kbSearchResults"></div>
+  </div>
+  <div class="grid-3" id="kbGrid"></div>
+</div>
+
+<!-- Personal -->
+<div class="page" id="page-personal">
+  <div class="page-header"><h2>个人工作区</h2><p>待办事项 · 日志 · 周计划</p></div>
+  <div class="profile-card">
+    <div class="profile-avatar" id="profAvatar">👤</div>
+    <div class="profile-info"><h3 id="profName">管理员</h3><p id="profRole">管理员 · 蜀川鑫工作室</p></div>
+    <div style="margin-left:auto;display:flex;gap:6px;">
+      <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,.3);" onclick="openModal('profile')">编辑资料</button>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><div class="card-title"><span>待办事项</span><div><select id="todoFilter" onchange="renderPersonal()" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:11px;margin-right:8px;"><option value="all">全部</option><option value="pending">待处理</option><option value="done">已完成</option><option value="high">紧急</option></select><button class="btn btn-primary btn-sm" onclick="openModal('todo')">+ 新建</button></div></div>
+      <div id="todoList"></div>
+    </div>
+    <div class="card"><div class="card-title"><span>工作日志</span><button class="btn btn-primary btn-sm" onclick="openModal('log')">+ 写日志</button></div>
+      <div id="logList" style="max-height:400px;overflow-y:auto;"></div>
+    </div>
+  </div>
+  <div class="card"><div class="card-title"><span>本周计划</span></div>
+    <div class="kanban" style="grid-template-columns:repeat(7,1fr);" id="weekPlanner"></div>
+  </div>
+</div>
+
+</div><!-- end main -->
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay"><div class="modal"><h3 id="modalTitle"></h3><div id="modalBody"></div><div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" id="modalSave">保存</button></div></div></div>
+
+<div id="toast" class="toast" style="display:none;"></div>
+
+<script>
+// ==================== Auth & Data ====================
+let SYNC_SERVER = localStorage.getItem('scx_sync_server') || '';
+let AUTH_TOKEN = localStorage.getItem('scx_auth_token') || '';
+let AUTH_USER = localStorage.getItem('scx_auth_user') || '';
+const STORAGE_KEY = 'scx_mobile_v2';
+
+// Same data layer as mobile PWA
+let DB = loadData();
+
+function getDefaultData() {
+  const t = new Date().toISOString().slice(0,10);
+  return {
+    projects:[{id:1,name:'铝合金外壳CNC加工',client:'张总',status:'produce',deadline:'2026-08-05',budget:35000,progress:60,notes:'500件,阳极氧化'},{id:2,name:'注塑模具-家电外壳',client:'李经理',status:'quote',deadline:'2026-08-20',budget:80000,progress:10},{id:3,name:'不锈钢法兰盘',client:'王工',status:'qc',deadline:'2026-07-30',budget:22000,progress:90},{id:4,name:'铜电极加工',client:'赵总',status:'done',deadline:'2026-07-15',budget:15000,progress:100}],
+    customers:[{id:1,name:'张伟',company:'深圳XX科技',phone:'138xxxx1234',orders:12,amount:285000,contact:'2026-07-20',paid:285000,unpaid:0},{id:2,name:'李明',company:'东莞YY模具',phone:'139xxxx5678',orders:8,amount:156000,contact:'2026-07-18',paid:120000,unpaid:36000},{id:3,name:'王强',company:'广州ZZ机械',phone:'137xxxx9012',orders:15,amount:420000,contact:'2026-07-25',paid:350000,unpaid:70000}],
+    employees:[{id:1,name:'刘师傅',role:'CNC操作员',phone:'135xx1111',status:'在岗',task:'铝合金外壳加工'},{id:2,name:'陈师傅',role:'模具师傅',phone:'136xx2222',status:'在岗',task:'模具设计'},{id:3,name:'小周',role:'质检员',phone:'133xx3333',status:'在岗',task:'法兰盘质检'},{id:4,name:'小吴',role:'学徒',phone:'134xx4444',status:'休假',task:'-'}],
+    equipment:[{id:1,name:'CNC-1',model:'VMC850',status:'运行中',last:'2026-07-01',next:'2026-08-01'},{id:2,name:'CNC-2',model:'VMC1060',status:'运行中',last:'2026-07-01',next:'2026-08-01'},{id:3,name:'注塑机-1',model:'HTF160',status:'运行中',last:'2026-06-15',next:'2026-07-15'},{id:4,name:'火花机-1',model:'A50',status:'维护中',last:'2026-07-25',next:'2026-07-28'}],
+    finance:[{id:1,month:'2026-03',income:86000,expense:52000},{id:2,month:'2026-04',income:92000,expense:58000},{id:3,month:'2026-05',income:105000,expense:61000},{id:4,month:'2026-06',income:98000,expense:55000},{id:5,month:'2026-07',income:112000,expense:63000}],
+    transactions:[{id:1,date:'2026-07-25',type:'income',amount:35000,source:'CNC加工',client:'张总',note:'铝合金外壳'},{id:2,date:'2026-07-22',type:'income',amount:15000,source:'铜电极',client:'赵总',note:'50件'},{id:3,date:'2026-07-20',type:'expense',amount:12000,source:'材料采购',client:'',note:'6061铝板200kg'},{id:4,date:'2026-07-18',type:'expense',amount:8500,source:'设备维护',client:'',note:'火花机维修'},{id:5,date:'2026-07-15',type:'income',amount:22000,source:'CNC加工',client:'王工',note:'不锈钢法兰盘'},{id:6,date:'2026-07-12',type:'expense',amount:6000,source:'表面处理',client:'',note:'阳极氧化300件'},{id:7,date:'2026-07-10',type:'income',amount:40000,source:'注塑模具',client:'李经理',note:'模具开发预付款'},{id:8,date:'2026-07-08',type:'expense',amount:18000,source:'人工工资',client:'',note:'员工7月工资'}],
+    accounts:[{id:1,plt:'抖音',name:'蜀川鑫CNC',fans:12500,views:8500,likes:320,cmt:45},{id:2,plt:'快手',name:'蜀川鑫加工',fans:8200,views:5200,likes:180,cmt:28},{id:3,plt:'小红书',name:'蜀川鑫制造',fans:5600,views:3200,likes:210,cmt:35},{id:4,plt:'B站',name:'蜀川鑫机械',fans:3400,views:2800,likes:150,cmt:22}],
+    topics:[{id:1,date:t,plt:'抖音',topic:'CNC加工铝合金全过程',type:'实操展示',status:'已发布'},{id:2,date:t,plt:'小红书',topic:'注塑模具设计避坑指南',type:'知识分享',status:'待拍摄'},{id:3,date:t,plt:'B站',topic:'5轴CNC vs 3轴CNC',type:'科普对比',status:'选题中'}],
+    mdata:[{id:1,date:t,plt:'抖音',views:8500,likes:320,cmt:45,share:28,newFans:65},{id:2,date:t,plt:'快手',views:5200,likes:180,cmt:28,share:15,newFans:38},{id:3,date:t,plt:'小红书',views:3200,likes:210,cmt:35,share:12,newFans:42},{id:4,date:t,plt:'B站',views:2800,likes:150,cmt:22,share:8,newFans:25}],
+    todos:[{id:1,txt:'确认阳极氧化供应商报价',pri:'high',status:'pending',due:t,cat:'经营'},{id:2,txt:'回复王工法兰盘质检报告',pri:'high',status:'pending',due:t,cat:'经营'},{id:3,txt:'拍摄CNC加工素材(抖音)',pri:'medium',status:'pending',due:t,cat:'自媒体'},{id:4,txt:'火花机维护后验收',pri:'medium',status:'pending',due:t,cat:'设备'},{id:5,txt:'整理本月财务报表',pri:'low',status:'pending',due:t,cat:'财务'},{id:6,txt:'更新模具报价单模板',pri:'low',status:'done',due:t,cat:'经营'}],
+    logs:[{id:1,date:t,content:'完成铝合金外壳首批100件CNC粗加工，进度正常。火花机维护中。王工法兰盘检出3件超差需返工。',mood:'正常'}],
+    hotVideos:[{id:1,plt:'抖音',title:'CNC五轴加工航空件全过程',author:'@机械大神',views:'128万',likes:'5.2万',link:'',note:'可借鉴镜头语言',date:t},{id:2,plt:'小红书',title:'模具厂日常vlog',author:'@模具女孩',views:'56万',likes:'3.1万',link:'',note:'vlog形式互动率高',date:t}],
+    mediaAdvice:[{id:1,date:t,title:'坚持日更抖音',content:'抖音算法偏向日更账号，建议每天至少发1条。最佳发布时间：11:30-12:30、18:00-20:00。',cat:'发布策略'},{id:2,date:t,title:'小红书图文+视频双发',content:'小红书图文笔记权重高，建议每个选题同时出图文和视频版本。',cat:'平台策略'}],
+    remixIdeas:[{id:1,date:t,source:'抖音@机械大神',original:'CNC五轴加工航空件',idea:'用三轴CNC加工类似零件，对比五轴和三轴效率差异',plt:'抖音',status:'待执行'}],
+    monthlyAnalysis:{lastGenerated:'',months:{}},
+    profile:{name:'',role:'管理员',phone:'',email:'',company:'蜀川鑫工作室',avatar:''},
+    nid:{project:5,customer:4,employee:5,equipment:5,finance:6,account:5,topic:4,todo:7,log:2,mdata:5,hotVideo:3,advice:3,remix:2,transaction:9}
+  };
+}
+
+function loadData() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s) { const d = JSON.parse(s); return d; }
+  } catch(e) {}
+  return getDefaultData();
+}
+
+function saveLocal() { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
+
+// ==================== Login ====================
+let loginMode = 'login';
+
+function switchLoginTab(m) {
+  loginMode = m;
+  document.querySelectorAll('.login-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&m==='login')||(i===1&&m==='register')));
+  document.getElementById('loginForm').style.display = m==='login'?'block':'none';
+  document.getElementById('registerForm').style.display = m==='register'?'block':'none';
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('loginFooterText').textContent = m==='login'?'还没有账号？':'已有账号？';
+  document.querySelector('.login-footer a').textContent = m==='login'?'立即注册':'去登录';
+  document.querySelector('.login-footer a').onclick = () => switchLoginTab(m==='login'?'register':'login');
+}
+
+function setLoginError(e) { document.getElementById('loginError').textContent = e; }
+
+function handleLogin() {
+  const u = document.getElementById('l_username').value.trim();
+  const p = document.getElementById('l_password').value;
+  if (!u || !p) return setLoginError('请输入用户名和密码');
+  setLoginError('登录中...');
+  fetch(SYNC_SERVER + '/api/auth/login', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username:u,password:p})
+  }).then(r=>r.json()).then(d=>{
+    if(d.ok) {
+      AUTH_TOKEN=d.token; AUTH_USER=d.username;
+      localStorage.setItem('scx_auth_token',d.token);
+      localStorage.setItem('scx_auth_user',d.username);
+      enterApp();
+    } else { setLoginError(d.error||'登录失败'); }
+  }).catch(()=>{ setLoginError('无法连接服务器'); });
+}
+
+function handleRegister() {
+  const u = document.getElementById('r_username').value.trim();
+  const p = document.getElementById('r_password').value;
+  const p2 = document.getElementById('r_password2').value;
+  if (!u||!p) return setLoginError('请填写完整信息');
+  if (u.length<2||u.length>30) return setLoginError('用户名需要2-30个字符');
+  if (p.length<6) return setLoginError('密码至少需要6个字符');
+  if (p!==p2) return setLoginError('两次密码不一致');
+  setLoginError('注册中...');
+  fetch(SYNC_SERVER+'/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})})
+  .then(r=>r.json()).then(d=>{
+    if(d.ok){ setLoginError(''); document.getElementById('l_username').value=u; document.getElementById('l_password').value=''; switchLoginTab('login'); showToast('注册成功,请登录'); }
+    else setLoginError(d.error||'注册失败');
+  }).catch(()=>{ setLoginError('无法连接服务器'); });
+}
+
+function handleLogout() {
+  if(confirm('确定退出登录？本地数据不会丢失。')) {
+    if(SYNC_SERVER&&AUTH_TOKEN) fetch(SYNC_SERVER+'/api/auth/logout',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+AUTH_TOKEN}}).catch(()=>{});
+    AUTH_TOKEN=''; AUTH_USER='';
+    localStorage.removeItem('scx_auth_token');
+    localStorage.removeItem('scx_auth_user');
+    document.getElementById('loginOverlay').style.display='flex';
+    document.getElementById('sidebar').style.display='none';
+    document.getElementById('mainArea').style.display='none';
+  }
+}
+
+function enterApp() {
+  document.getElementById('loginOverlay').style.display='none';
+  document.getElementById('sidebar').style.display='flex';
+  document.getElementById('mainArea').style.display='block';
+  document.getElementById('sidebarUser').textContent = AUTH_USER;
+  initDate();
+  renderOverview();
+}
+
+// ==================== Navigation ====================
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    item.classList.add('active');
+    document.getElementById('page-'+item.dataset.page).classList.add('active');
+    const renders = { overview:renderOverview, projects:renderProjects, finance:renderFinance, customers:renderCustomers, media:renderMedia, knowledge:renderKnowledge, personal:renderPersonal };
+    if(renders[item.dataset.page]) renders[item.dataset.page]();
+  });
+});
+
+// ==================== Toast ====================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display='block';
+  setTimeout(()=>{ t.style.display='none'; }, 2000);
+}
+
+// ==================== Date ====================
+function initDate() {
+  const n = new Date();
+  const ms = ['1','2','3','4','5','6','7','8','9','10','11','12'];
+  const ws = ['日','一','二','三','四','五','六'];
+  document.getElementById('headerDate').textContent = n.getFullYear()+'年'+ms[n.getMonth()]+'月'+n.getDate()+'日 星期'+ws[n.getDay()];
+}
+
+// ==================== Overview ====================
+let chartFinInst, chartMedInst;
+
+function renderOverview() {
+  const active = DB.projects.filter(p=>p.status!=='done');
+  const curM = new Date().toISOString().slice(0,7);
+  const mFin = DB.finance.find(f=>f.month===curM) || DB.finance[DB.finance.length-1] || {};
+  const pendTodos = DB.todos.filter(t=>t.status==='pending');
+  const totalFollowers = DB.accounts.reduce((s,a)=>s+(a.fans||0),0);
+
+  document.getElementById('statGrid').innerHTML = `
+    <div class="stat-card blue"><div class="stat-label">进行中项目</div><div class="stat-value">${active.length}</div><div class="stat-sub">共 ${DB.projects.length} 个项目</div></div>
+    <div class="stat-card green"><div class="stat-label">本月收入</div><div class="stat-value">¥${((mFin.income||0)/10000).toFixed(1)}万</div><div class="stat-sub">支出 ¥${((mFin.expense||0)/10000).toFixed(1)}万</div></div>
+    <div class="stat-card amber"><div class="stat-label">待办事项</div><div class="stat-value">${pendTodos.length}</div><div class="stat-sub">${pendTodos.filter(t=>t.pri==='high').length} 项高优先级</div></div>
+    <div class="stat-card red"><div class="stat-label">自媒体账号</div><div class="stat-value">${DB.accounts.length}</div><div class="stat-sub">总粉丝 ${totalFollowers.toLocaleString()}</div></div>
+  `;
+
+  const todayTs = DB.todos.filter(t=>t.status==='pending').slice(0,5);
+  document.getElementById('ovTodos').innerHTML = todayTs.length ? todayTs.map(t=>`
+    <div class="todo-item"><input type="checkbox" class="todo-checkbox" onchange="toggleTodo(${t.id})"><span class="todo-text">${t.txt}</span><span class="badge ${t.pri==='high'?'badge-red':t.pri==='medium'?'badge-amber':'badge-gray'}">${t.pri==='high'?'紧急':t.pri==='medium'?'重要':'一般'}</span></div>
+  `).join('') : '<div style="text-align:center;padding:20px;color:var(--text-light);">暂无待办</div>';
+
+  document.getElementById('ovProjects').innerHTML = DB.projects.slice(0,5).map(p=>`
+    <div style="padding:10px 0;border-bottom:1px solid var(--border);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><span style="font-size:13px;font-weight:500;">${p.name}</span><span class="badge ${p.status==='done'?'badge-green':p.status==='produce'?'badge-blue':p.status==='qc'?'badge-amber':'badge-gray'}">${p.status==='quote'?'报价中':p.status==='produce'?'生产中':p.status==='qc'?'质检中':'已交付'}</span></div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-light);"><span>客户：${p.client}</span><span>¥${(p.budget||0).toLocaleString()}</span></div><div class="progress-bar" style="margin-top:6px;"><div class="progress-fill" style="width:${p.progress||0}%"></div></div></div>
+  `).join('');
+
+  renderOverviewCharts();
+}
+
+function renderOverviewCharts() {
+  if(chartFinInst) chartFinInst.destroy();
+  const c1 = document.getElementById('chartFinance'); if(!c1) return;
+  chartFinInst = new Chart(c1, {type:'bar',data:{labels:DB.finance.map(f=>f.month),datasets:[{label:'收入',data:DB.finance.map(f=>f.income),backgroundColor:'#2563eb',borderRadius:6},{label:'支出',data:DB.finance.map(f=>f.expense),backgroundColor:'#dc2626',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}});
+
+  if(chartMedInst) chartMedInst.destroy();
+  const c2 = document.getElementById('chartMedia'); if(!c2) return;
+  chartMedInst = new Chart(c2, {type:'doughnut',data:{labels:DB.accounts.map(a=>a.plt),datasets:[{data:DB.accounts.map(a=>a.fans||0),backgroundColor:['#dc2626','#f59e0b','#2563eb','#16a34a','#8b5cf6']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11}}}}}});
+}
+
+// ==================== Projects ====================
+function renderProjects() {
+  const statuses = {quote:'报价中',produce:'生产中',qc:'质检中',done:'已交付'};
+  const colors = {quote:'#94a3b8',produce:'#2563eb',qc:'#f59e0b',done:'#16a34a'};
+  document.getElementById('kanbanBoard').innerHTML = Object.entries(statuses).map(([k,v])=>`
+    <div class="kanban-col"><h4>${v} <span class="badge ${k==='done'?'badge-green':k==='produce'?'badge-blue':k==='qc'?'badge-amber':'badge-gray'}">${DB.projects.filter(p=>p.status===k).length}</span></h4>
+      ${DB.projects.filter(p=>p.status===k).map(p=>`
+        <div class="kanban-card" style="border-left-color:${colors[k]}"><h5>${p.name}</h5><p>客户：${p.client} · ¥${(p.budget||0).toLocaleString()}</p><p>截止：${p.deadline}${p.notes?' · '+p.notes:''}</p><div class="kc-meta"><div class="progress-bar" style="flex:1;margin-right:8px;"><div class="progress-fill" style="width:${p.progress||0}%"></div></div><span>${p.progress||0}%</span></div><div class="kc-actions">${k!=='done'?`<button class="btn btn-sm btn-outline" onclick="advanceProject(${p.id})">推进</button>`:''}<button class="btn btn-sm btn-outline" onclick="deleteProject(${p.id})" style="color:#dc2626;">删除</button></div></div>
+      `).join('')||'<div style="text-align:center;padding:16px;color:var(--text-light);font-size:11px;">暂无项目</div>'}
+    </div>
+  `).join('');
+
+  document.getElementById('equipmentList').innerHTML = DB.equipment.map(eq=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);"><div><div style="font-size:13px;font-weight:500;">${eq.name} <span style="color:var(--text-light);font-size:11px;">${eq.model}</span></div><div style="font-size:11px;color:var(--text-light);">上次：${eq.last} · 下次：${eq.next}</div></div><span class="badge ${eq.status==='运行中'?'badge-green':eq.status==='维护中'?'badge-amber':'badge-gray'}">${eq.status}</span></div>
+  `).join('');
+}
+
+function advanceProject(id) {
+  const p = DB.projects.find(x=>x.id===id); if(!p) return;
+  const order = ['quote','produce','qc','done']; const idx = order.indexOf(p.status);
+  if(idx<order.length-1){ p.status = order[idx+1]; p.progress = p.status==='done'?100:(p.progress||0)+25; saveLocal(); renderProjects(); showToast('已推进'); }
+}
+
+function deleteProject(id) { DB.projects=DB.projects.filter(p=>p.id!==id); saveLocal(); renderProjects(); showToast('已删除'); }
+
+// ==================== Finance ====================
+let chartFinMonthInst, chartFinPieInst;
+
+function renderFinance() {
+  const cy = new Date().getFullYear();
+  const yFin = DB.finance.filter(f=>f.month.startsWith(cy));
+  const yIn = yFin.reduce((s,f)=>s+(f.income||0),0);
+  const yEx = yFin.reduce((s,f)=>s+(f.expense||0),0);
+  document.getElementById('finYearStats').innerHTML = `<div class="stat-card green"><div class="stat-label">${cy}年总收入</div><div class="stat-value">¥${(yIn/10000).toFixed(1)}万</div></div><div class="stat-card red"><div class="stat-label">${cy}年总支出</div><div class="stat-value">¥${(yEx/10000).toFixed(1)}万</div></div><div class="stat-card blue"><div class="stat-label">${cy}年结余</div><div class="stat-value">¥${((yIn-yEx)/10000).toFixed(1)}万</div></div>`;
+
+  if(chartFinMonthInst) chartFinMonthInst.destroy();
+  const c1 = document.getElementById('chartFinMonth'); if(c1){
+    chartFinMonthInst = new Chart(c1, {type:'bar',data:{labels:DB.finance.map(f=>f.month),datasets:[{label:'收入',data:DB.finance.map(f=>f.income),backgroundColor:'#16a34a',borderRadius:6},{label:'支出',data:DB.finance.map(f=>f.expense),backgroundColor:'#dc2626',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
+  }
+
+  if(chartFinPieInst) chartFinPieInst.destroy();
+  const ic = {}, ec = {};
+  DB.transactions.forEach(t=>{ if(t.type==='income') ic[t.source]=(ic[t.source]||0)+t.amount; else ec[t.source]=(ec[t.source]||0)+t.amount; });
+  const c2 = document.getElementById('chartFinPie'); if(c2){
+    chartFinPieInst = new Chart(c2,{type:'doughnut',data:{labels:Object.keys(ic).slice(0,6),datasets:[{data:Object.values(ic).slice(0,6),backgroundColor:['#2563eb','#16a34a','#f59e0b','#8b5cf6','#ec4899','#06b6d4']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}}}});
+  }
+
+  document.getElementById('financeTable').innerHTML = '<div style="overflow-x:auto;"><table><thead><tr><th>日期</th><th>类型</th><th>来源/用途</th><th>客户</th><th>金额</th><th>备注</th><th>操作</th></tr></thead><tbody>'+[...DB.transactions].reverse().map(t=>`<tr><td>${t.date}</td><td><span class="badge ${t.type==='income'?'badge-green':'badge-red'}">${t.type==='income'?'收入':'支出'}</span></td><td>${t.source}</td><td>${t.client||'-'}</td><td style="font-weight:700;color:${t.type==='income'?'var(--success)':'var(--danger)'};">¥${t.amount.toLocaleString()}</td><td>${t.note||'-'}</td><td><button class="btn btn-sm btn-outline" onclick="deleteTransaction(${t.id})" style="color:#dc2626;">删除</button></td></tr>`).join('')+'</tbody></table></div>';
+}
+
+function deleteTransaction(id) { DB.transactions=DB.transactions.filter(t=>t.id!==id); saveLocal(); renderFinance(); showToast('已删除'); }
+
+// ==================== Customers ====================
+function renderCustomers() {
+  document.getElementById('customerTable').innerHTML = DB.customers.map(c=>`
+    <tr><td><strong>${c.name}</strong></td><td>${c.company||'-'}</td><td>${c.phone}</td><td>${c.orders||0}</td><td>¥${(c.amount||0).toLocaleString()}</td><td style="color:#16a34a;font-weight:600;">¥${(c.paid||0).toLocaleString()}</td><td style="color:#dc2626;font-weight:600;">¥${(c.unpaid||0).toLocaleString()}</td><td><button class="btn btn-sm btn-outline" onclick="deleteCustomer(${c.id})" style="color:#dc2626;">删除</button></td></tr>
+  `).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-light);">暂无客户</td></tr>';
+
+  document.getElementById('employeeTable').innerHTML = DB.employees.map(e=>`
+    <tr><td><strong>${e.name}</strong></td><td>${e.role}</td><td>${e.phone}</td><td><span class="badge ${e.status==='在岗'?'badge-green':'badge-gray'}">${e.status}</span></td><td>${e.task||'-'}</td><td><button class="btn btn-sm btn-outline" onclick="deleteEmployee(${e.id})" style="color:#dc2626;">删除</button></td></tr>
+  `).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-light);">暂无员工</td></tr>';
+}
+
+function deleteCustomer(id) { DB.customers=DB.customers.filter(c=>c.id!==id); saveLocal(); renderCustomers(); showToast('已删除'); }
+function deleteEmployee(id) { DB.employees=DB.employees.filter(e=>e.id!==id); saveLocal(); renderCustomers(); showToast('已删除'); }
+
+// ==================== Media ====================
+let chartMediaDailyInst;
+
+function renderMedia() {
+  const pIcons = {抖音:'🎵',快手:'⚡',小红书:'📕',B站:'📺','微信视频号':'💬'};
+  const pColors = {抖音:'#fee2e2',快手:'#fef3c7',小红书:'#fee2e2',B站:'#dbeafe','微信视频号':'#dcfce7'};
+  document.getElementById('accountGrid').innerHTML = DB.accounts.map(a=>`
+    <div class="acct-card"><div class="acct-icon" style="background:${pColors[a.plt]||'#f1f5f9'};">${pIcons[a.plt]||'📱'}</div><div class="acct-info"><h5>${a.name}</h5><p>${a.plt}</p></div><div class="acct-stats"><div class="num">${(a.fans||0).toLocaleString()}</div><div class="label">粉丝</div></div></div>
+  `).join('')||'<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text-light);">暂无账号</div>';
+
+  document.getElementById('hotVideosList').innerHTML = DB.hotVideos.slice().reverse().slice(0,10).map(v=>`
+    <div class="hot-item"><div style="flex:1;"><div style="font-size:13px;font-weight:500;">${v.title}</div><div style="font-size:11px;color:var(--text-light);">${v.author} · ${v.plt} · ${v.views}播放 · ${v.likes}赞</div>${v.note?`<div style="font-size:11px;color:var(--primary);margin-top:2px;">💡 ${v.note}</div>`:''}</div></div>
+  `).join('')||'<div style="text-align:center;padding:20px;color:var(--text-light);">暂无热门视频</div>';
+
+  document.getElementById('adviceList').innerHTML = DB.mediaAdvice.slice().reverse().map(a=>`
+    <div style="padding:10px;border-bottom:1px solid var(--border);"><div style="font-size:13px;font-weight:500;margin-bottom:4px;">${a.title} <span class="badge badge-blue">${a.cat}</span></div><div style="font-size:12px;color:var(--text-light);line-height:1.6;">${a.content}</div></div>
+  `).join('')||'<div style="text-align:center;padding:20px;color:var(--text-light);">暂无建议</div>';
+
+  document.getElementById('topicTable').innerHTML = DB.topics.map(t=>`
+    <tr><td>${t.date}</td><td>${t.plt}</td><td>${t.topic}</td><td>${t.type}</td><td><span class="badge ${t.status==='已发布'?'badge-green':t.status==='待拍摄'?'badge-amber':'badge-blue'}">${t.status}</span></td></tr>
+  `).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--text-light);">暂无选题</td></tr>';
+
+  if(chartMediaDailyInst) chartMediaDailyInst.destroy();
+  const c3 = document.getElementById('chartMediaDaily'); if(c3){
+    const plats = [...new Set(DB.mdata.map(d=>d.plt))];
+    const dates = [...new Set(DB.mdata.map(d=>d.date))].sort();
+    const clrs = ['#dc2626','#f59e0b','#2563eb','#16a34a','#8b5cf6'];
+    chartMediaDailyInst = new Chart(c3,{type:'bar',data:{labels:dates,datasets:plats.map((p,i)=>({label:p,data:dates.map(d=>{const it=DB.mdata.find(x=>x.date===d&&x.plt===p);return it?it.views:0;}),backgroundColor:clrs[i%clrs.length],borderRadius:4}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
+  }
+}
+
+// ==================== Knowledge ====================
+function renderKnowledge() {
+  document.getElementById('kbGrid').innerHTML = `
+    <div class="kb-card" onclick="showKB('mech')"><div class="kb-icon">🔧</div><h4>机械制造学习</h4><p>CNC编程 · 加工工艺 · 材料知识 · G代码</p></div>
+    <div class="kb-card" onclick="showKB('work')"><div class="kb-icon">📋</div><h4>工作知识库</h4><p>公司流程 · 管理制度 · 安全规程</p></div>
+    <div class="kb-card" onclick="showKB('tech')"><div class="kb-icon">⚙️</div><h4>技术知识库</h4><p>模具设计 · 注塑工艺 · 表面处理</p></div>
+  `;
+  document.getElementById('kbSearchResults').innerHTML = '';
+}
+
+function searchKB() {
+  const q = document.getElementById('kbSearchInput').value.trim();
+  if(!q) return;
+  const results = document.getElementById('kbSearchResults');
+  results.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-light);">🔍 搜索中...</div>';
+
+  // Local search in KB data
+  const kbData = DB.kbData || {};
+  let hits = [];
+  for(const [cat,catData] of Object.entries(kbData)){
+    if(catData.sections) catData.sections.forEach(s=>{
+      if(s.h&&s.h.includes(q)) hits.push({cat:catData.title,section:s.h,item:''});
+      if(s.items) s.items.forEach(it=>{ if(it.includes(q)) hits.push({cat:catData.title,section:s.h,item:it}); });
+    });
+  }
+
+  let html = '';
+  if(hits.length>0){
+    html += '<div style="font-weight:600;font-size:13px;margin-bottom:8px;">📚 本地知识库 ('+hits.length+'条匹配)</div>';
+    hits.slice(0,10).forEach(h=>{ html += `<div style="padding:8px;border-bottom:1px solid var(--border);font-size:12px;"><span class="badge badge-blue" style="margin-right:6px;">${h.cat}</span><strong>${h.section}</strong>${h.item?': '+h.item:''}</div>`; });
+  } else {
+    html += '<div style="text-align:center;padding:16px;color:var(--text-light);font-size:12px;">本地知识库未找到匹配结果。<br>可尝试不同关键词，或使用 DeepSeek AI 全网检索。</div>';
+  }
+
+  // DeepSeek API call
+  html += '<div style="margin-top:8px;font-size:10px;color:var(--text-light);">🤖 DeepSeek AI 全网检索结果：</div><div id="dsResult" style="padding:10px;font-size:12px;line-height:1.8;border:1px solid var(--border);border-radius:8px;margin-top:4px;background:var(--bg);">搜索中...</div>';
+  results.innerHTML = html;
+
+  fetch('https://api.deepseek.com/v1/chat/completions', {
+    method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer sk-32a61e5d33024a9aaff5db7ad6de7e20'},
+    body:JSON.stringify({model:'deepseek-chat',messages:[{role:'system',content:'你是机械制造专家。回答关于CNC加工、注塑模具、机械制造的问题。简洁专业。'},{role:'user',content:q}],max_tokens:600})
+  }).then(r=>r.json()).then(d=>{
+    document.getElementById('dsResult').textContent = d.choices?.[0]?.message?.content || '搜索完成，无结果。';
+  }).catch(()=>{ document.getElementById('dsResult').textContent = 'AI搜索失败，请检查网络。'; });
+}
+
+function showKB(cat) {
+  const kb = DB.kbData||{};
+  const d = kb[cat]; if(!d) return;
+  let html = '<div class="card"><div class="card-title"><span>'+d.icon+' '+d.title+'</span><button class="btn btn-outline btn-sm" onclick="renderKnowledge()">返回</button></div>';
+  if(d.sections) d.sections.forEach(s=>{
+    html += '<div style="margin-bottom:12px;"><h4 style="font-size:13px;font-weight:600;margin-bottom:6px;">📌 '+s.h+'</h4>';
+    s.items.forEach(it=>{ html += '<div style="padding:6px 10px;font-size:12px;border-bottom:1px solid var(--border);">'+it+'</div>'; });
+    html += '</div>';
+  });
+  html += '</div>';
+  document.getElementById('kbGrid').innerHTML = html;
+  document.getElementById('kbSearchResults').innerHTML = '';
+}
+
+// ==================== Personal ====================
+function renderPersonal() {
+  const p = DB.profile||{};
+  document.getElementById('profAvatar').textContent = p.avatar||'👤';
+  document.getElementById('profName').textContent = p.name||AUTH_USER||'管理员';
+  document.getElementById('profRole').textContent = (p.role||'管理员')+' · '+(p.company||'蜀川鑫工作室');
+
+  const filter = document.getElementById('todoFilter')?.value||'all';
+  let items = DB.todos;
+  if(filter==='pending') items=items.filter(t=>t.status==='pending');
+  else if(filter==='done') items=items.filter(t=>t.status==='done');
+  else if(filter==='high') items=items.filter(t=>t.pri==='high');
+
+  document.getElementById('todoList').innerHTML = items.length ? items.map(t=>`
+    <div class="todo-item ${t.status==='done'?'done':''}"><input type="checkbox" class="todo-checkbox" ${t.status==='done'?'checked':''} onchange="toggleTodo(${t.id})"><div class="todo-text">${t.txt}<div style="font-size:10px;color:var(--text-light);">${t.cat} · ${t.due}</div></div><span class="badge ${t.pri==='high'?'badge-red':t.pri==='medium'?'badge-amber':'badge-gray'}">${t.pri==='high'?'紧急':t.pri==='medium'?'重要':'一般'}</span><button class="btn btn-sm btn-outline" onclick="deleteTodo(${t.id})" style="color:#dc2626;">删除</button></div>
+  `).join('') : '<div style="text-align:center;padding:20px;color:var(--text-light);">暂无待办</div>';
+
+  document.getElementById('logList').innerHTML = DB.logs.length ? [...DB.logs].reverse().map(l=>`
+    <div style="padding:10px;border-bottom:1px solid var(--border);"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:12px;font-weight:600;">${l.date}</span><span class="badge badge-gray">${l.mood}</span></div><p style="font-size:12px;line-height:1.6;">${l.content}</p></div>
+  `).join('') : '<div style="text-align:center;padding:20px;color:var(--text-light);">暂无日志</div>';
+
+  const n = new Date(), dow = (n.getDay()+6)%7;
+  const mon = new Date(n); mon.setDate(n.getDate()-dow);
+  const ds = ['周一','周二','周三','周四','周五','周六','周日'];
+  document.getElementById('weekPlanner').innerHTML = ds.map((d,i)=>{
+    const dt = new Date(mon); dt.setDate(mon.getDate()+i);
+    const ds2 = dt.toISOString().slice(0,10);
+    const dayTs = DB.todos.filter(t=>t.due===ds2);
+    const today2 = ds2===n.toISOString().slice(0,10);
+    return `<div class="kanban-col"><h4 style="color:${today2?'var(--primary)':'var(--text)'};">${d}<br><span style="font-size:9px;color:var(--text-light);">${dt.getMonth()+1}/${dt.getDate()}</span></h4>${dayTs.map(t=>`<div style="padding:3px 6px;border-radius:4px;font-size:10px;margin-bottom:3px;background:${today2?'var(--primary-light)':'#fff'};${t.status==='done'?'text-decoration:line-through;opacity:.5;':''}">${t.txt}</div>`).join('')||'<div style="font-size:10px;color:var(--text-light);text-align:center;padding:6px;">-</div>'}</div>`;
+  }).join('');
+}
+
+function toggleTodo(id) { const t=DB.todos.find(x=>x.id===id); if(t){t.status=t.status==='done'?'pending':'done';saveLocal();renderPersonal();} }
+function deleteTodo(id) { DB.todos=DB.todos.filter(t=>t.id!==id); saveLocal(); renderPersonal(); showToast('已删除'); }
+
+// ==================== Modal ====================
+function openModal(type) {
+  const ov=document.getElementById('modalOverlay'), t=document.getElementById('modalTitle'), b=document.getElementById('modalBody'), s=document.getElementById('modalSave');
+  const today=new Date().toISOString().slice(0,10);
+  const forms = {
+    project:{title:'新建项目',html:`
+      <div class="form-group"><label>项目名称</label><input id="f_name"></div>
+      <div class="form-row"><div class="form-group"><label>客户</label><input id="f_client"></div><div class="form-group"><label>预算</label><input id="f_budget" type="number" value="0"></div></div>
+      <div class="form-row"><div class="form-group"><label>状态</label><select id="f_status"><option value="quote">报价中</option><option value="produce">生产中</option><option value="qc">质检中</option><option value="done">已交付</option></select></div><div class="form-group"><label>截止日期</label><input id="f_deadline" type="date"></div></div>
+      <div class="form-group"><label>备注</label><textarea id="f_notes" rows="2"></textarea></div>
+    `,save:()=>{ const p={id:DB.nid.project++,name:fv('f_name'),client:fv('f_client'),status:fv('f_status'),deadline:fv('f_deadline'),budget:+fv('f_budget')||0,progress:fv('f_status')==='done'?100:0,notes:fv('f_notes')}; if(!p.name) return showToast('请输入项目名称'); DB.projects.push(p); saveLocal(); renderProjects(); showToast('项目已添加'); }},
+    customer:{title:'添加客户',html:`
+      <div class="form-row"><div class="form-group"><label>姓名</label><input id="f_name"></div><div class="form-group"><label>公司</label><input id="f_company"></div></div>
+      <div class="form-row"><div class="form-group"><label>电话</label><input id="f_phone"></div><div class="form-group"><label>累计金额</label><input id="f_amount" type="number" value="0"></div></div>
+      <div class="form-row"><div class="form-group"><label>已付款 ¥</label><input id="f_paid" type="number" value="0"></div><div class="form-group"><label>未付款 ¥</label><input id="f_unpaid" type="number" value="0"></div></div>
+    `,save:()=>{ const c={id:DB.nid.customer++,name:fv('f_name'),company:fv('f_company'),phone:fv('f_phone'),orders:0,amount:+fv('f_amount')||0,contact:today,paid:+fv('f_paid')||0,unpaid:+fv('f_unpaid')||0}; if(!c.name) return showToast('请输入客户姓名'); DB.customers.push(c); saveLocal(); renderCustomers(); showToast('客户已添加'); }},
+    employee:{title:'添加员工',html:`
+      <div class="form-row"><div class="form-group"><label>姓名</label><input id="f_name"></div><div class="form-group"><label>岗位</label><input id="f_role"></div></div>
+      <div class="form-row"><div class="form-group"><label>电话</label><input id="f_phone"></div><div class="form-group"><label>状态</label><select id="f_status"><option>在岗</option><option>休假</option><option>离职</option></select></div></div>
+      <div class="form-group"><label>当前任务</label><input id="f_task"></div>
+    `,save:()=>{ const e={id:DB.nid.employee++,name:fv('f_name'),role:fv('f_role'),phone:fv('f_phone'),status:fv('f_status'),task:fv('f_task')||'-'}; if(!e.name) return showToast('请输入姓名'); DB.employees.push(e); saveLocal(); renderCustomers(); showToast('员工已添加'); }},
+    equipment:{title:'添加设备',html:`
+      <div class="form-row"><div class="form-group"><label>设备名</label><input id="f_name"></div><div class="form-group"><label>型号</label><input id="f_model"></div></div>
+      <div class="form-row"><div class="form-group"><label>状态</label><select id="f_status"><option>运行中</option><option>维护中</option><option>停机</option></select></div></div>
+      <div class="form-row"><div class="form-group"><label>上次维护</label><input id="f_last" type="date"></div><div class="form-group"><label>下次维护</label><input id="f_next" type="date"></div></div>
+    `,save:()=>{ const e={id:DB.nid.equipment++,name:fv('f_name'),model:fv('f_model'),status:fv('f_status'),last:fv('f_last'),next:fv('f_next')}; if(!e.name) return showToast('请输入设备名'); DB.equipment.push(e); saveLocal(); renderProjects(); showToast('设备已添加'); }},
+    transaction:{title:'记一笔流水',html:`
+      <div class="form-row"><div class="form-group"><label>类型</label><select id="f_type"><option value="income">收入</option><option value="expense">支出</option></select></div><div class="form-group"><label>日期</label><input id="f_date" type="date" value="${today}"></div></div>
+      <div class="form-row"><div class="form-group"><label>金额</label><input id="f_amount" type="number" value="0"></div><div class="form-group"><label>来源/用途</label><input id="f_source"></div></div>
+      <div class="form-row"><div class="form-group"><label>客户(收入时)</label><input id="f_client"></div><div class="form-group"><label>备注</label><input id="f_note"></div></div>
+    `,save:()=>{ const t={id:DB.nid.transaction++,date:fv('f_date'),type:fv('f_type'),amount:+fv('f_amount')||0,source:fv('f_source'),client:fv('f_client'),note:fv('f_note')}; if(!t.source) return showToast('请输入来源/用途'); DB.transactions.push(t); saveLocal(); renderFinance(); showToast('流水已记录'); }},
+    account:{title:'添加账号',html:`
+      <div class="form-row"><div class="form-group"><label>平台</label><select id="f_plt"><option>抖音</option><option>快手</option><option>小红书</option><option>B站</option><option>微信视频号</option></select></div><div class="form-group"><label>账号名</label><input id="f_name"></div></div>
+      <div class="form-row"><div class="form-group"><label>粉丝数</label><input id="f_fans" type="number" value="0"></div><div class="form-group"><label>当日播放</label><input id="f_views" type="number" value="0"></div></div>
+    `,save:()=>{ const a={id:DB.nid.account++,plt:fv('f_plt'),name:fv('f_name'),fans:+fv('f_fans')||0,views:+fv('f_views')||0,likes:0,cmt:0}; if(!a.name) return showToast('请输入账号名'); DB.accounts.push(a); saveLocal(); renderMedia(); showToast('账号已添加'); }},
+    hotVideo:{title:'添加热门视频',html:`
+      <div class="form-row"><div class="form-group"><label>平台</label><select id="f_plt"><option>抖音</option><option>快手</option><option>小红书</option><option>B站</option></select></div><div class="form-group"><label>作者</label><input id="f_author"></div></div>
+      <div class="form-group"><label>标题</label><input id="f_title"></div>
+      <div class="form-row"><div class="form-group"><label>播放量</label><input id="f_views"></div><div class="form-group"><label>点赞量</label><input id="f_likes"></div></div>
+      <div class="form-group"><label>二创建议</label><textarea id="f_note" rows="2"></textarea></div>
+    `,save:()=>{ const v={id:DB.nid.hotVideo++,plt:fv('f_plt'),title:fv('f_title'),author:fv('f_author'),views:fv('f_views'),likes:fv('f_likes'),link:'',note:fv('f_note'),date:today}; if(!v.title) return showToast('请输入标题'); DB.hotVideos.push(v); saveLocal(); renderMedia(); showToast('已添加'); }},
+    advice:{title:'添加运营建议',html:`
+      <div class="form-row"><div class="form-group"><label>标题</label><input id="f_title"></div><div class="form-group"><label>分类</label><select id="f_cat"><option>发布策略</option><option>平台策略</option><option>内容方向</option><option>涨粉技巧</option><option>其他</option></select></div></div>
+      <div class="form-group"><label>内容</label><textarea id="f_content" rows="3"></textarea></div>
+    `,save:()=>{ const a={id:DB.nid.advice++,date:today,title:fv('f_title'),cat:fv('f_cat'),content:fv('f_content')}; if(!a.title) return showToast('请输入标题'); DB.mediaAdvice.push(a); saveLocal(); renderMedia(); showToast('已添加'); }},
+    topic:{title:'添加选题',html:`
+      <div class="form-row"><div class="form-group"><label>平台</label><select id="f_plt"><option>抖音</option><option>快手</option><option>小红书</option><option>B站</option></select></div><div class="form-group"><label>类型</label><select id="f_type"><option>实操展示</option><option>知识分享</option><option>科普对比</option><option>日常vlog</option></select></div></div>
+      <div class="form-group"><label>选题</label><input id="f_topic"></div>
+      <div class="form-group"><label>状态</label><select id="f_status"><option>选题中</option><option>待拍摄</option><option>已发布</option></select></div>
+    `,save:()=>{ const tp={id:DB.nid.topic++,date:today,plt:fv('f_plt'),topic:fv('f_topic'),type:fv('f_type'),status:fv('f_status')}; if(!tp.topic) return showToast('请输入选题'); DB.topics.push(tp); saveLocal(); renderMedia(); showToast('已添加'); }},
+    mediaData:{title:'记录数据',html:`
+      <div class="form-row"><div class="form-group"><label>平台</label><select id="f_plt">${DB.accounts.map(a=>'<option>'+a.plt+'</option>').join('')}</select></div><div class="form-group"><label>日期</label><input id="f_date" type="date" value="${today}"></div></div>
+      <div class="form-row"><div class="form-group"><label>播放</label><input id="f_views" type="number" value="0"></div><div class="form-group"><label>点赞</label><input id="f_likes" type="number" value="0"></div></div>
+      <div class="form-row"><div class="form-group"><label>评论</label><input id="f_cmt" type="number" value="0"></div><div class="form-group"><label>分享</label><input id="f_share" type="number" value="0"></div></div>
+      <div class="form-group"><label>新增粉丝</label><input id="f_newf" type="number" value="0"></div>
+    `,save:()=>{ DB.mdata.push({id:DB.nid.mdata++,date:fv('f_date'),plt:fv('f_plt'),views:+fv('f_views')||0,likes:+fv('f_likes')||0,cmt:+fv('f_cmt')||0,share:+fv('f_share')||0,newFans:+fv('f_newf')||0}); saveLocal(); renderMedia(); showToast('数据已记录'); }},
+    todo:{title:'新建待办',html:`
+      <div class="form-group"><label>内容</label><input id="f_txt"></div>
+      <div class="form-row"><div class="form-group"><label>优先级</label><select id="f_pri"><option value="high">紧急</option><option value="medium" selected>重要</option><option value="low">一般</option></select></div><div class="form-group"><label>分类</label><select id="f_cat"><option>经营</option><option>财务</option><option>自媒体</option><option>设备</option><option>个人</option></select></div></div>
+      <div class="form-group"><label>截止日期</label><input id="f_due" type="date" value="${today}"></div>
+    `,save:()=>{ const td={id:DB.nid.todo++,txt:fv('f_txt'),pri:fv('f_pri'),status:'pending',due:fv('f_due'),cat:fv('f_cat')}; if(!td.txt) return showToast('请输入内容'); DB.todos.push(td); saveLocal(); renderPersonal(); showToast('待办已添加'); }},
+    log:{title:'写日志',html:`
+      <div class="form-row"><div class="form-group"><label>日期</label><input id="f_date" type="date" value="${today}"></div><div class="form-group"><label>状态</label><select id="f_mood"><option>正常</option><option>顺利</option><option>忙碌</option><option>困难</option></select></div></div>
+      <div class="form-group"><label>内容</label><textarea id="f_content" rows="4"></textarea></div>
+    `,save:()=>{ const l={id:DB.nid.log++,date:fv('f_date'),content:fv('f_content'),mood:fv('f_mood')}; if(!l.content) return showToast('请输入内容'); DB.logs.push(l); saveLocal(); renderPersonal(); showToast('日志已保存'); }},
+    profile:{title:'编辑个人资料',html:`
+      <div class="form-row"><div class="form-group"><label>姓名</label><input id="f_pname" value="${DB.profile?.name||AUTH_USER||''}"></div><div class="form-group"><label>职位</label><input id="f_prole" value="${DB.profile?.role||'管理员'}"></div></div>
+      <div class="form-row"><div class="form-group"><label>手机</label><input id="f_pphone" value="${DB.profile?.phone||''}"></div><div class="form-group"><label>邮箱</label><input id="f_pemail" value="${DB.profile?.email||''}"></div></div>
+      <div class="form-group"><label>公司</label><input id="f_pcompany" value="${DB.profile?.company||'蜀川鑫工作室'}"></div>
+    `,save:()=>{ DB.profile = {name:fv('f_pname'),role:fv('f_prole'),phone:fv('f_pphone'),email:fv('f_pemail'),company:fv('f_pcompany'),avatar:DB.profile?.avatar||''}; saveLocal(); renderPersonal(); showToast('资料已更新'); }}
+  };
+  const form = forms[type]; if(!form) return;
+  t.textContent = form.title; b.innerHTML = form.html;
+  s.onclick = () => { form.save(); closeModal(); };
+  ov.classList.add('show');
+}
+
+function closeModal() { document.getElementById('modalOverlay').classList.remove('show'); }
+function fv(id) { return document.getElementById(id)?.value||''; }
+document.getElementById('modalOverlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+
+// Login Enter key
+document.getElementById('l_password').addEventListener('keydown', e => { if(e.key==='Enter') handleLogin(); });
+
+// ==================== Init ====================
+function initApp() {
+  if(!SYNC_SERVER && window.location.protocol!=='file:') {
+    SYNC_SERVER = window.location.origin;
+    localStorage.setItem('scx_sync_server', SYNC_SERVER);
+  }
+  if(AUTH_TOKEN && AUTH_USER && SYNC_SERVER) {
+    fetch(SYNC_SERVER+'/api/auth/verify', {method:'GET',headers:{'Authorization':'Bearer '+AUTH_TOKEN},signal:AbortSignal.timeout(5000)})
+      .then(r=>r.json()).then(d=>{
+        if(d.ok) enterApp();
+        else { AUTH_TOKEN=''; AUTH_USER=''; localStorage.removeItem('scx_auth_token'); localStorage.removeItem('scx_auth_user'); document.getElementById('loginOverlay').style.display='flex'; }
+      }).catch(()=>{ enterApp(); });
+  }
+}
+initApp();
+</script>
+</body>
+</html>
