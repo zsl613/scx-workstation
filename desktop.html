@@ -20,6 +20,7 @@ body { font-family:'Segoe UI','Microsoft YaHei',sans-serif; background:var(--bg)
 .login-overlay { position:fixed; top:0;left:0;right:0;bottom:0; background:var(--bg); z-index:1000; display:flex; flex-direction:column; align-items:center; justify-content:center; }
 .login-card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow-lg); padding:32px; width:100%; max-width:380px; }
 .login-logo { text-align:center; margin-bottom:24px; }
+.login-logo img { width:64px; height:64px; display:block; margin:0 auto 8px; }
 .login-logo .logo-icon { font-size:48px; display:block; margin-bottom:8px; }
 .login-logo h2 { font-size:22px; font-weight:700; color:var(--primary); }
 .login-logo p { font-size:12px; color:var(--text-light); margin-top:4px; }
@@ -39,6 +40,7 @@ body { font-family:'Segoe UI','Microsoft YaHei',sans-serif; background:var(--bg)
 /* Sidebar */
 .sidebar { width:220px; background:var(--sidebar-bg); color:var(--sidebar-text); display:flex; flex-direction:column; position:fixed; height:100vh; top:0; left:0; z-index:100; }
 .sidebar-header { padding:20px; text-align:center; border-bottom:1px solid rgba(255,255,255,.1); }
+.sidebar-header img { width:48px; height:48px; display:block; margin:0 auto 8px; }
 .sidebar-header h1 { font-size:18px; color:#fff; font-weight:700; }
 .sidebar-header p { font-size:11px; color:var(--text-light); margin-top:4px; }
 .nav { flex:1; padding:8px 0; overflow-y:auto; }
@@ -189,7 +191,7 @@ tr:hover td { background:#f8fafc; }
 <!-- Login Overlay -->
 <div class="login-overlay" id="loginOverlay">
 <div class="login-card">
-<div class="login-logo"><span class="logo-icon">🏭</span><h2>蜀川鑫工作台</h2><p>CNC精密加工 · 注塑模具 · 桌面管理版</p></div>
+<div class="login-logo"><img src="logo.png" alt="蜀川鑫"><h2>蜀川鑫工作台</h2><p>CNC精密加工 · 注塑模具 · 桌面管理版</p></div>
 <div class="login-tabs"><div class="login-tab active" onclick="switchLoginTab('login')">登录</div><div class="login-tab" onclick="switchLoginTab('register')">注册</div></div>
 <div class="login-error" id="loginError"></div>
 <div class="login-form" id="loginForm">
@@ -208,7 +210,7 @@ tr:hover td { background:#f8fafc; }
 
 <!-- Sidebar -->
 <div class="sidebar" id="sidebar" style="display:none;">
-  <div class="sidebar-header"><h1>蜀川鑫工作台</h1><p>CNC · 注塑模具 · 桌面版</p></div>
+  <div class="sidebar-header"><img src="logo.png" alt="蜀川鑫"><h1>蜀川鑫工作台</h1><p>CNC · 注塑模具 · 桌面版</p></div>
   <div class="nav">
     <div class="nav-item active" data-page="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>概览首页</span></div>
     <div class="nav-item" data-page="projects"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>项目管理</span></div>
