@@ -152,6 +152,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
 .sync-dialog .sync-status.offline{background:var(--danger-light);color:var(--danger)}
 .sync-dialog .sync-status.syncing{background:var(--warning-light);color:var(--warning)}
 .sync-url-hint{font-size:10px;color:var(--text-light);margin-top:6px;text-align:center;word-break:break-all}
+/* Profile card */
+.profile-card{background:linear-gradient(135deg,var(--primary) 0%,#6366f1 100%);border-radius:var(--radius);padding:20px;margin-bottom:18px;color:#fff;position:relative;overflow:hidden;border:1.5px solid rgba(255,255,255,.12)}
+.profile-card::after{content:'';position:absolute;top:-30px;right:-20px;width:120px;height:120px;background:rgba(255,255,255,.06);border-radius:50%}
+.profile-top{display:flex;align-items:center;gap:14px;position:relative;z-index:1}
+.profile-avatar{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:2px solid rgba(255,255,255,.3)}
+.profile-info{flex:1}
+.profile-info h3{font-size:17px;font-weight:700;margin:0 0 2px}
+.profile-info .profile-role{font-size:11px;opacity:.75}
+.profile-stats{display:flex;gap:12px;margin-top:14px;position:relative;z-index:1}
+.profile-stat{flex:1;background:rgba(255,255,255,.12);border-radius:8px;padding:10px 8px;text-align:center;border:1px solid rgba(255,255,255,.08)}
+.profile-stat .stat-num{font-size:18px;font-weight:700}
+.profile-stat .stat-label{font-size:10px;opacity:.7;margin-top:2px}
+.profile-actions{display:flex;gap:8px;margin-top:12px;position:relative;z-index:1}
+.profile-btn{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:12px;cursor:pointer;text-align:center;transition:.15s;touch-action:manipulation}
+.profile-btn:active{background:rgba(255,255,255,.2)}
 /* Login page */
 .login-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
 .login-card{background:var(--card);border-radius:var(--radius);box-shadow:0 4px 16px rgba(0,0,0,.08);padding:28px 24px;width:100%;max-width:340px;animation:fadeIn .4s}
@@ -366,9 +381,11 @@ function getDefaultData() {
     ],
     remixIdeas:[
       {id:1,date:t,source:'抖音@机械大神',original:'CNC五轴加工航空件',idea:'用我们的三轴CNC加工类似零件，对比五轴和三轴的效率差异，做一期"三轴也能干"系列',plt:'抖音',status:'待执行'},
-      {id:2,date:t,source:'小红书@模具女孩',original:'模具厂日常vlog',idea:'模仿vlog形式，拍摄我们工作室的一天，从早会到收工，加入CNC加工特写镜头',plt:'小红书',status:'待执行'}
+      {id:2,date:t,source:'小红书@模具女孩',original:'模具厂日常vlog',idea:'模仿vlog形式，拍摄我们工作室的一天，从早会到收工，加入CNC加工特写镜头',plt:'小红书',status:'待执行'},
+    ],
     ],
     monthlyAnalysis:{lastGenerated:'',months:{}},
+    profile:{name:'',role:'管理员',phone:'',email:'',company:'蜀川鑫工作室',avatar:''},
     nid:{project:5,customer:4,employee:5,equipment:5,finance:6,account:5,topic:4,todo:7,log:2,mdata:5,hotVideo:3,advice:4,remix:3,kbItem:100,transaction:9}
   };
 }
@@ -835,6 +852,31 @@ function configureDeepSeekKey() {
 
 // ============ Personal ============
 function renderPersonal() {
+  const p = DB.profile || {};
+  const doneTodos = DB.todos.filter(t=>t.status==='done').length;
+  const totalTodos = DB.todos.length;
+  const projectCnt = DB.projects.length;
+  const todayLog = DB.logs.find(l=>l.date===new Date().toISOString().slice(0,10));
+  // Profile card
+  const profH = '<div class="profile-card">'+
+    '<div class="profile-top">'+
+      '<div class="profile-avatar">'+(p.avatar||'👤')+'</div>'+
+      '<div class="profile-info">'+
+        '<h3>'+(p.name||(AUTH_USER||'管理员'))+'</h3>'+
+        '<div class="profile-role">'+(p.role||'管理员')+' · '+(p.company||'蜀川鑫工作室')+'</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="profile-stats">'+
+      '<div class="profile-stat"><div class="stat-num">'+projectCnt+'</div><div class="stat-label">项目总数</div></div>'+
+      '<div class="profile-stat"><div class="stat-num">'+doneTodos+'</div><div class="stat-label">已完成待办</div></div>'+
+      '<div class="profile-stat"><div class="stat-num">'+(p.phone?'✓':'−')+'</div><div class="stat-label">手机绑定</div></div>'+
+    '</div>'+
+    '<div class="profile-actions">'+
+      '<div class="profile-btn" onclick="openSheet(\'profile\')">✏️ 编辑资料</div>'+
+      '<div class="profile-btn" onclick="openSyncSettings()">🔄 同步设置</div>'+
+      '<div class="profile-btn" onclick="handleLogout()">🚪 退出登录</div>'+
+    '</div>'+
+  '</div>';
   const filter=document.getElementById('todoFilter')?.value||'all';
   let items=DB.todos;
   if(filter==='pending')items=items.filter(t=>t.status==='pending');
@@ -853,7 +895,8 @@ function renderPersonal() {
     const dayTodos=DB.todos.filter(t=>t.due===ds);const isToday=ds===new Date().toISOString().slice(0,10);
     return '<div style="min-width:120px;background:'+(isToday?'var(--primary-light)':'var(--bg)')+';border-radius:8px;padding:8px;"><h4 style="font-size:11px;font-weight:'+(isToday?700:500)+';margin-bottom:6px;display:flex;justify-content:space-between;color:'+(isToday?'var(--primary)':'var(--text)')+';">'+d+'<span style="font-size:9px;color:var(--text-light);">'+(dt.getMonth()+1)+'/'+dt.getDate()+'</span></h4>'+(dayTodos.length?dayTodos.map(t=>'<div style="background:#fff;padding:4px 6px;border-radius:4px;font-size:10px;margin-bottom:4px;border-left:2px solid '+(t.pri==='high'?'#dc2626':t.pri==='medium'?'#f59e0b':'#94a3b8')+';'+(t.status==='done'?'text-decoration:line-through;opacity:.5;':'')+'">'+t.txt+'</div>').join(''):'<div style="text-align:center;padding:6px;font-size:10px;color:var(--text-light);">-</div>')+'</div>';
   }).join('');
-  return '<div class="card"><div class="card-title"><span>待办事项</span><select id="todoFilter" onchange="switchTab(\'personal\')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:11px;background:var(--card);"><option value="all" '+(filter==='all'?'selected':'')+'>全部</option><option value="pending" '+(filter==='pending'?'selected':'')+'>待处理</option><option value="done" '+(filter==='done'?'selected':'')+'>已完成</option><option value="high" '+(filter==='high'?'selected':'')+'>紧急</option></select></div>'+todoH+'</div>'+
+  return profH+
+    '<div class="card"><div class="card-title"><span>待办事项</span><select id="todoFilter" onchange="switchTab(\'personal\')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:11px;background:var(--card);"><option value="all" '+(filter==='all'?'selected':'')+'>全部</option><option value="pending" '+(filter==='pending'?'selected':'')+'>待处理</option><option value="done" '+(filter==='done'?'selected':'')+'>已完成</option><option value="high" '+(filter==='high'?'selected':'')+'>紧急</option></select></div>'+todoH+'</div>'+
     '<div class="card"><div class="card-title"><span>工作日志</span></div>'+logH+'</div>'+
     '<div class="card"><div class="card-title"><span>本周计划</span></div><div style="display:flex;overflow-x:auto;gap:8px;padding-bottom:6px;-webkit-overflow-scrolling:touch;margin:0 -4px;">'+weekH+'</div></div>';
 }
@@ -965,12 +1008,29 @@ function openSheet(type, param) {
       title:'新增知识库分类',
       html:'<div class="form-group"><label>分类标识(英文)</label><input id="s_kbkey" placeholder="如 mold"></div><div class="form-group"><label>分类名称</label><input id="s_kbtitle"></div><div class="form-row"><div class="form-group"><label>图标</label><input id="s_kbicon" placeholder="🔧" value="📚"></div><div class="form-group"><label>描述</label><input id="s_kbdesc"></div></div>',
       save:()=>{const key=v('s_kbkey');const title=v('s_kbtitle');if(!key||!title)return showToast('请填写标识和名称');if(DB.kbData[key])return showToast('该标识已存在');DB.kbData[key]={title:title,icon:v('s_kbicon')||'📚',desc:v('s_kbdesc')||'',sections:[]};saveData();switchTab('knowledge');showToast('分类已添加');}
+    },
+    profile:{
+      title:'编辑个人资料',
+      html:'<div class="form-group"><label>头像表情</label><input id="s_pavatar" placeholder="如 👤 🛠️ 🔧 ⚙️ 🏭"></div><div class="form-row"><div class="form-group"><label>姓名</label><input id="s_pname"></div><div class="form-group"><label>角色</label><input id="s_prole" placeholder="如 创始人/管理员"></div></div><div class="form-row"><div class="form-group"><label>手机号</label><input id="s_pphone" type="tel"></div><div class="form-group"><label>邮箱</label><input id="s_pemail"></div></div><div class="form-group"><label>公司/工作室</label><input id="s_pcompany" placeholder="蜀川鑫工作室"></div>',
+      save:()=>{const p=DB.profile||{};p.avatar=v('s_pavatar')||'👤';p.name=v('s_pname');p.role=v('s_prole')||'管理员';p.phone=v('s_pphone');p.email=v('s_pemail');p.company=v('s_pcompany')||'蜀川鑫工作室';DB.profile=p;saveData();switchTab('personal');showToast('资料已更新');}
     }
   };
   const sheet=sheets[type];
   if(!sheet)return;
   title.textContent=sheet.title;
   body.innerHTML=sheet.html;
+  // Pre-fill profile data
+  if (type === 'profile') {
+    const p = DB.profile || {};
+    setTimeout(() => {
+      var el = document.getElementById('s_pavatar'); if (el) el.value = p.avatar || '';
+      el = document.getElementById('s_pname'); if (el) el.value = p.name || AUTH_USER || '';
+      el = document.getElementById('s_prole'); if (el) el.value = p.role || '';
+      el = document.getElementById('s_pphone'); if (el) el.value = p.phone || '';
+      el = document.getElementById('s_pemail'); if (el) el.value = p.email || '';
+      el = document.getElementById('s_pcompany'); if (el) el.value = p.company || '';
+    }, 50);
+  }
   saveBtn.onclick=()=>{sheet.save();closeModal();};
   overlay.classList.add('show');
 }
