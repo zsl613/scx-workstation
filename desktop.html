@@ -256,9 +256,16 @@ tr:hover td { background:#f8fafc; }
 <div class="page" id="page-finance">
   <div class="page-header"><h2>财务管理</h2><p>收支流水 · 月度分析 · 年度汇总</p></div>
   <div class="stat-grid" id="finYearStats"></div>
+  <div class="card"><div class="card-title"><span>月度数据总览</span><span style="font-size:11px;color:var(--text-light);">点击月份编辑收入/支出构成</span></div>
+    <div style="overflow-x:auto;"><table><thead><tr><th>月份</th><th style="text-align:right;">收入</th><th style="text-align:right;">支出</th><th style="text-align:right;">利润</th><th style="text-align:right;">利润率</th><th>收入构成</th><th>支出构成</th><th>操作</th></tr></thead><tbody id="finMonthTable"></tbody></table></div>
+  </div>
   <div class="grid-2">
     <div class="card"><div class="card-title"><span>月度收支趋势</span></div><div class="chart-container-lg"><canvas id="chartFinMonth"></canvas></div></div>
     <div class="card"><div class="card-title"><span>收入构成</span></div><div class="chart-container"><canvas id="chartFinPie"></canvas></div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><div class="card-title"><span>累计收入构成</span></div><div id="finIncSource"></div></div>
+    <div class="card"><div class="card-title"><span>累计支出构成</span></div><div id="finExpSource"></div></div>
   </div>
   <div class="card"><div class="card-title"><span>收支流水</span><button class="btn btn-primary" onclick="openModal('transaction')">+ 记一笔</button></div>
     <div id="financeTable"></div>
@@ -549,28 +556,105 @@ function deleteProject(id) { DB.projects=DB.projects.filter(p=>p.id!==id); saveL
 let chartFinMonthInst, chartFinPieInst;
 
 function renderFinance() {
-  const cy = new Date().getFullYear();
+  const cy = new Date().getFullYear().toString();
   const yFin = DB.finance.filter(f=>f.month.startsWith(cy));
   const yIn = yFin.reduce((s,f)=>s+(f.income||0),0);
   const yEx = yFin.reduce((s,f)=>s+(f.expense||0),0);
-  document.getElementById('finYearStats').innerHTML = `<div class="stat-card green"><div class="stat-label">${cy}年总收入</div><div class="stat-value">¥${(yIn/10000).toFixed(1)}万</div></div><div class="stat-card red"><div class="stat-label">${cy}年总支出</div><div class="stat-value">¥${(yEx/10000).toFixed(1)}万</div></div><div class="stat-card blue"><div class="stat-label">${cy}年结余</div><div class="stat-value">¥${((yIn-yEx)/10000).toFixed(1)}万</div></div>`;
+  const yBal = yIn - yEx;
+  document.getElementById('finYearStats').innerHTML = `<div class="stat-card green"><div class="stat-label">${cy}年总收入</div><div class="stat-value">¥${yIn.toLocaleString()}</div></div><div class="stat-card red"><div class="stat-label">${cy}年总支出</div><div class="stat-value">¥${yEx.toLocaleString()}</div></div><div class="stat-card ${yBal>=0?'blue':'red'}"><div class="stat-label">${cy}年结余</div><div class="stat-value">¥${yBal.toLocaleString()}</div></div>`;
 
+  // Monthly data table with breakdown summaries
+  const sortedFin = [...DB.finance].sort((a,b)=>b.month.localeCompare(a.month));
+  document.getElementById('finMonthTable').innerHTML = sortedFin.map(f=>{
+    const pft = f.income - f.expense;
+    const margin = f.income>0 ? ((pft/f.income)*100).toFixed(1) : '0';
+    const incBreak = f.incomeBreakdown||{};
+    const expBreak = f.expenseBreakdown||{};
+    const incStr = Object.entries(incBreak).map(([k,v])=>k+' ¥'+v.toLocaleString()).join(' · ')||'−';
+    const expStr = Object.entries(expBreak).map(([k,v])=>k+' ¥'+v.toLocaleString()).join(' · ')||'−';
+    return `<tr style="cursor:pointer;" onclick="editFinanceMonth('${f.month}')">
+      <td><strong>${f.month}</strong></td>
+      <td style="text-align:right;color:#16a34a;font-weight:600;">¥${f.income.toLocaleString()}</td>
+      <td style="text-align:right;color:#dc2626;font-weight:600;">¥${f.expense.toLocaleString()}</td>
+      <td style="text-align:right;font-weight:700;color:${pft>=0?'#16a34a':'#dc2626'};">¥${pft.toLocaleString()}</td>
+      <td style="text-align:right;font-size:12px;color:var(--text-light);">${margin}%</td>
+      <td style="font-size:11px;color:var(--text-light);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${incStr}</td>
+      <td style="font-size:11px;color:var(--text-light);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${expStr}</td>
+      <td><span class="badge badge-blue" style="cursor:pointer;">编辑</span></td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-light);">暂无月度数据</td></tr>';
+
+  // Trend chart
   if(chartFinMonthInst) chartFinMonthInst.destroy();
   const c1 = document.getElementById('chartFinMonth'); if(c1){
-    chartFinMonthInst = new Chart(c1, {type:'bar',data:{labels:DB.finance.map(f=>f.month),datasets:[{label:'收入',data:DB.finance.map(f=>f.income),backgroundColor:'#16a34a',borderRadius:6},{label:'支出',data:DB.finance.map(f=>f.expense),backgroundColor:'#dc2626',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
+    chartFinMonthInst = new Chart(c1, {type:'bar',data:{labels:DB.finance.map(f=>f.month.slice(5)),datasets:[{label:'收入',data:DB.finance.map(f=>f.income),backgroundColor:'#16a34a',borderRadius:6},{label:'支出',data:DB.finance.map(f=>f.expense),backgroundColor:'#dc2626',borderRadius:6},{label:'利润',data:DB.finance.map(f=>f.income-f.expense),backgroundColor:'#2563eb',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
   }
 
+  // Pie chart from breakdowns (income)
   if(chartFinPieInst) chartFinPieInst.destroy();
-  const ic = {}, ec = {};
-  DB.transactions.forEach(t=>{ if(t.type==='income') ic[t.source]=(ic[t.source]||0)+t.amount; else ec[t.source]=(ec[t.source]||0)+t.amount; });
+  const icAgg = {};
+  DB.finance.forEach(f=>{ const b=f.incomeBreakdown||{}; Object.entries(b).forEach(([k,v])=>{ icAgg[k]=(icAgg[k]||0)+v; }); });
+  const icSorted = Object.entries(icAgg).sort((a,b)=>b[1]-a[1]);
   const c2 = document.getElementById('chartFinPie'); if(c2){
-    chartFinPieInst = new Chart(c2,{type:'doughnut',data:{labels:Object.keys(ic).slice(0,6),datasets:[{data:Object.values(ic).slice(0,6),backgroundColor:['#2563eb','#16a34a','#f59e0b','#8b5cf6','#ec4899','#06b6d4']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}}}});
+    if(icSorted.length>0){
+      chartFinPieInst = new Chart(c2,{type:'doughnut',data:{labels:icSorted.map(([k])=>k),datasets:[{data:icSorted.map(([,v])=>v),backgroundColor:['#16a34a','#2563eb','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#84cc16','#6366f1']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}}}});
+    }
   }
 
-  document.getElementById('financeTable').innerHTML = '<div style="overflow-x:auto;"><table><thead><tr><th>日期</th><th>类型</th><th>来源/用途</th><th>客户</th><th>金额</th><th>备注</th><th>操作</th></tr></thead><tbody>'+[...DB.transactions].reverse().map(t=>`<tr><td>${t.date}</td><td><span class="badge ${t.type==='income'?'badge-green':'badge-red'}">${t.type==='income'?'收入':'支出'}</span></td><td>${t.source}</td><td>${t.client||'-'}</td><td style="font-weight:700;color:${t.type==='income'?'var(--success)':'var(--danger)'};">¥${t.amount.toLocaleString()}</td><td>${t.note||'-'}</td><td><button class="btn btn-sm btn-outline" onclick="deleteTransaction(${t.id})" style="color:#dc2626;">删除</button></td></tr>`).join('')+'</tbody></table></div>';
+  // Cumulative income source
+  document.getElementById('finIncSource').innerHTML = icSorted.length>0 ? icSorted.map(([k,v],i)=>{
+    const total = icSorted.reduce((s,[,v2])=>s+v2,0);
+    const pct = ((v/total)*100).toFixed(1);
+    return `<div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);"><div class="dot" style="width:8px;height:8px;border-radius:50%;background:#16a34a;margin-right:8px;flex-shrink:0;"></div><span style="flex:1;font-size:12px;">${k}</span><span style="font-weight:600;font-size:12px;color:#16a34a;margin-right:8px;">¥${v.toLocaleString()}</span><span style="font-size:11px;color:var(--text-light);">${pct}%</span></div><div style="height:4px;background:#f1f5f9;border-radius:2px;margin-bottom:6px;"><div style="height:100%;width:${pct}%;background:#16a34a;border-radius:2px;"></div></div>`;
+  }).join('') : '<div style="text-align:center;padding:20px;color:var(--text-light);">暂无收入构成数据</div>';
+
+  // Cumulative expense source
+  const ecAgg = {};
+  DB.finance.forEach(f=>{ const b=f.expenseBreakdown||{}; Object.entries(b).forEach(([k,v])=>{ ecAgg[k]=(ecAgg[k]||0)+v; }); });
+  const ecSorted = Object.entries(ecAgg).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('finExpSource').innerHTML = ecSorted.length>0 ? ecSorted.map(([k,v],i)=>{
+    const total = ecSorted.reduce((s,[,v2])=>s+v2,0);
+    const pct = ((v/total)*100).toFixed(1);
+    return `<div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);"><div class="dot" style="width:8px;height:8px;border-radius:50%;background:#dc2626;margin-right:8px;flex-shrink:0;"></div><span style="flex:1;font-size:12px;">${k}</span><span style="font-weight:600;font-size:12px;color:#dc2626;margin-right:8px;">¥${v.toLocaleString()}</span><span style="font-size:11px;color:var(--text-light);">${pct}%</span></div><div style="height:4px;background:#f1f5f9;border-radius:2px;margin-bottom:6px;"><div style="height:100%;width:${pct}%;background:#dc2626;border-radius:2px;"></div></div>`;
+  }).join('') : '<div style="text-align:center;padding:20px;color:var(--text-light);">暂无支出构成数据</div>';
+
+  // Transaction table
+  document.getElementById('financeTable').innerHTML = '<div style="overflow-x:auto;"><table><thead><tr><th>日期</th><th>类型</th><th>来源/用途</th><th>客户</th><th>金额</th><th>备注</th><th>操作</th></tr></thead><tbody>'+[...DB.transactions].reverse().map(t=>`<tr><td>${t.date}</td><td><span class="badge ${t.type==='income'?'badge-green':'badge-red'}">${t.type==='income'?'收入':'支出'}</span></td><td>${t.source}</td><td>${t.client||'-'}</td><td style="font-weight:700;color:${t.type==='income'?'var(--success)':'var(--danger)'};">¥${t.amount.toLocaleString()}</td><td>${t.note||'-'}</td><td><button class="btn btn-sm btn-outline" onclick="event.stopPropagation();deleteTransaction(${t.id})" style="color:#dc2626;">删除</button></td></tr>`).join('')+'</tbody></table></div>';
 }
 
 function deleteTransaction(id) { DB.transactions=DB.transactions.filter(t=>t.id!==id); saveLocal(); renderFinance(); showToast('已删除'); }
+
+function editFinanceMonth(month){
+  const f=DB.finance.find(x=>x.month===month);if(!f)return;
+  if(!f.incomeBreakdown)f.incomeBreakdown={};
+  if(!f.expenseBreakdown)f.expenseBreakdown={};
+  const incBreakStr=Object.entries(f.incomeBreakdown||{}).map(([k,v])=>k+','+v).join('\n');
+  const expBreakStr=Object.entries(f.expenseBreakdown||{}).map(([k,v])=>k+','+v).join('\n');
+  openModal('editFinanceMonth');
+  document.getElementById('modalTitle').textContent='编辑 '+month+' 数据';
+  document.getElementById('f_fin_month').value=month;
+  setTimeout(()=>{
+    const fi=document.getElementById('f_fin_income');
+    const fe=document.getElementById('f_fin_expense');
+    const bi=document.getElementById('f_fin_incbreak');
+    const be=document.getElementById('f_fin_expbreak');
+    if(fi)fi.value=f.income;
+    if(fe)fe.value=f.expense;
+    if(bi)bi.value=incBreakStr;
+    if(be)be.value=expBreakStr;
+  },50);
+  document.getElementById('modalSave').onclick=()=>{
+    f.income=+fv('f_fin_income')||0;
+    f.expense=+fv('f_fin_expense')||0;
+    const incBreak={};
+    fv('f_fin_incbreak').trim().split('\n').forEach(line=>{const p=line.split(',');if(p.length>=2){const k=p[0].trim(),val=+p[1]||0;if(k)incBreak[k]=val;}});
+    f.incomeBreakdown=incBreak;
+    const expBreak={};
+    fv('f_fin_expbreak').trim().split('\n').forEach(line=>{const p=line.split(',');if(p.length>=2){const k=p[0].trim(),val=+p[1]||0;if(k)expBreak[k]=val;}});
+    f.expenseBreakdown=expBreak;
+    saveLocal(); renderFinance(); closeModal(); showToast(month+' 已更新');
+  };
+}
 
 // ==================== Customers ====================
 function renderCustomers() {
@@ -782,7 +866,14 @@ function openModal(type) {
       <div class="form-row"><div class="form-group"><label>姓名</label><input id="f_pname" value="${DB.profile?.name||AUTH_USER||''}"></div><div class="form-group"><label>职位</label><input id="f_prole" value="${DB.profile?.role||'管理员'}"></div></div>
       <div class="form-row"><div class="form-group"><label>手机</label><input id="f_pphone" value="${DB.profile?.phone||''}"></div><div class="form-group"><label>邮箱</label><input id="f_pemail" value="${DB.profile?.email||''}"></div></div>
       <div class="form-group"><label>公司</label><input id="f_pcompany" value="${DB.profile?.company||'蜀川鑫工作室'}"></div>
-    `,save:()=>{ DB.profile = {name:fv('f_pname'),role:fv('f_prole'),phone:fv('f_pphone'),email:fv('f_pemail'),company:fv('f_pcompany'),avatar:DB.profile?.avatar||''}; saveLocal(); renderPersonal(); showToast('资料已更新'); }}
+    `,save:()=>{ DB.profile = {name:fv('f_pname'),role:fv('f_prole'),phone:fv('f_pphone'),email:fv('f_pemail'),company:fv('f_pcompany'),avatar:DB.profile?.avatar||''}; saveLocal(); renderPersonal(); showToast('资料已更新'); }},
+    editFinanceMonth:{title:'编辑月度数据',html:`
+      <input type="hidden" id="f_fin_month">
+      <div class="form-row"><div class="form-group"><label>总收入</label><input id="f_fin_income" type="number"></div><div class="form-group"><label>总支出</label><input id="f_fin_expense" type="number"></div></div>
+      <div class="form-group"><label>收入构成（每行：来源,金额）</label><textarea id="f_fin_incbreak" rows="4" placeholder="CNC加工,35000&#10;注塑模具,40000&#10;铜电极,22000"></textarea></div>
+      <div class="form-group"><label>支出构成（每行：项目,金额）</label><textarea id="f_fin_expbreak" rows="4" placeholder="材料采购,12000&#10;人工工资,18000&#10;设备维护,8500"></textarea></div>
+      <div style="font-size:11px;color:var(--text-light);">💡 编辑后将自动计算总计，也可手动修改总收入/总支出</div>
+    `,save:()=>{}}
   };
   const form = forms[type]; if(!form) return;
   t.textContent = form.title; b.innerHTML = form.html;
