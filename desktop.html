@@ -527,7 +527,8 @@ function renderOverview() {
 function renderOverviewCharts() {
   if(chartFinInst) chartFinInst.destroy();
   const c1 = document.getElementById('chartFinance'); if(!c1) return;
-  chartFinInst = new Chart(c1, {type:'bar',data:{labels:DB.finance.map(f=>f.month),datasets:[{label:'收入',data:DB.finance.map(f=>f.income),backgroundColor:'#2563eb',borderRadius:6},{label:'支出',data:DB.finance.map(f=>f.expense),backgroundColor:'#dc2626',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}});
+  const sortedFin = [...DB.finance].sort((a,b)=>a.month.localeCompare(b.month));
+  chartFinInst = new Chart(c1, {type:'bar',data:{labels:sortedFin.map(f=>f.month),datasets:[{label:'收入',data:sortedFin.map(f=>f.income),backgroundColor:'#2563eb',borderRadius:6},{label:'支出',data:sortedFin.map(f=>f.expense),backgroundColor:'#dc2626',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}});
 
   if(chartMedInst) chartMedInst.destroy();
   const c2 = document.getElementById('chartMedia'); if(!c2) return;
@@ -605,7 +606,8 @@ function renderFinance() {
   // Trend chart
   if(chartFinMonthInst) chartFinMonthInst.destroy();
   const c1 = document.getElementById('chartFinMonth'); if(c1){
-    chartFinMonthInst = new Chart(c1, {type:'bar',data:{labels:DB.finance.map(f=>f.month.slice(5)),datasets:[{label:'收入',data:DB.finance.map(f=>f.income),backgroundColor:'#16a34a',borderRadius:6},{label:'支出',data:DB.finance.map(f=>f.expense),backgroundColor:'#dc2626',borderRadius:6},{label:'利润',data:DB.finance.map(f=>f.income-f.expense),backgroundColor:'#2563eb',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
+    const sortedFin = [...DB.finance].sort((a,b)=>a.month.localeCompare(b.month));
+    chartFinMonthInst = new Chart(c1, {type:'bar',data:{labels:sortedFin.map(f=>f.month.slice(5)),datasets:[{label:'收入',data:sortedFin.map(f=>f.income),backgroundColor:'#16a34a',borderRadius:6},{label:'支出',data:sortedFin.map(f=>f.expense),backgroundColor:'#dc2626',borderRadius:6},{label:'利润',data:sortedFin.map(f=>f.income-f.expense),backgroundColor:'#2563eb',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
   }
 
   // Pie chart from breakdowns (income)
