@@ -151,6 +151,7 @@ tr:hover td { background:#f8fafc; }
 .acct-stats { text-align:right; }
 .acct-stats .num { font-size:18px; font-weight:700; }
 .acct-stats .label { font-size:10px; color:var(--text-light); }
+.acct-actions { display:flex; flex-direction:column; gap:4px; justify-content:center; }
 
 /* Modal */
 .modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.4); z-index:500; justify-content:center; align-items:center; }
@@ -758,12 +759,14 @@ function renderMedia() {
   const pIcons = {抖音:'🎵',快手:'⚡',小红书:'📕',B站:'📺','微信视频号':'💬'};
   const pColors = {抖音:'#fee2e2',快手:'#fef3c7',小红书:'#fee2e2',B站:'#dbeafe','微信视频号':'#dcfce7'};
   document.getElementById('accountGrid').innerHTML = DB.accounts.map(a=>`
-    <div class="acct-card" style="position:relative;">
-      <div style="position:absolute;top:6px;right:6px;display:flex;gap:4px;">
-        <button class="btn btn-sm btn-outline" onclick="openModal('account',${a.id})" style="padding:2px 6px;font-size:11px;">✏️</button>
-        <button class="btn btn-sm btn-outline" onclick="deleteAccount(${a.id})" style="padding:2px 6px;font-size:11px;color:#dc2626;">🗑️</button>
+    <div class="acct-card">
+      <div class="acct-icon" style="background:${pColors[a.plt]||'#f1f5f9'};">${pIcons[a.plt]||'📱'}</div>
+      <div class="acct-info"><h5>${a.name}</h5><p>${a.plt}</p></div>
+      <div class="acct-stats"><div class="num">${(a.fans||0).toLocaleString()}</div><div class="label">粉丝</div></div>
+      <div class="acct-actions">
+        <button class="btn btn-sm btn-outline" onclick="openModal('account',${a.id})" title="编辑">✏️</button>
+        <button class="btn btn-sm btn-outline" onclick="deleteAccount(${a.id})" title="删除" style="color:#dc2626;">🗑️</button>
       </div>
-      <div class="acct-icon" style="background:${pColors[a.plt]||'#f1f5f9'};">${pIcons[a.plt]||'📱'}</div><div class="acct-info"><h5>${a.name}</h5><p>${a.plt}</p></div><div class="acct-stats"><div class="num">${(a.fans||0).toLocaleString()}</div><div class="label">粉丝</div></div>
     </div>
   `).join('')||'<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text-light);">暂无账号</div>';
 
