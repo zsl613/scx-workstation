@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="蜀川鑫">
+<meta name="theme-color" content="#2563eb">
+<meta name="description" content="CNC精密加工·注塑模具·经营管理工作台">
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22%E8%9C%80%E5%B7%9D%E9%91%AB%E5%B7%A5%E4%BD%9C%E5%8F%B0%22%2C%22short_name%22%3A%22%E8%9C%80%E5%B7%9D%E9%91%AB%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f1f5f9%22%2C%22theme_color%22%3A%22%232563eb%22%7D">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232563eb'/><text x='50' y='60' text-anchor='middle' fill='white' font-size='50' font-weight='bold' font-family='sans-serif'>蜀</text></svg>">
+<title>蜀川鑫工作台</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--primary:#2563eb;--primary-light:#dbeafe;--success:#16a34a;--success-light:#dcfce7;--warning:#f59e0b;--warning-light:#fef3c7;--danger:#dc2626;--danger-light:#fee2e2;--purple:#8b5cf6;--purple-light:#ede9fe;--bg:#f1f5f9;--card:#fff;--text:#1e293b;--text-light:#64748b;--border:#e2e8f0;--radius:14px;--shadow:0 1px 3px rgba(0,0,0,.06);--tab-height:56px;--header-height:52px;--safe-bottom:env(safe-area-inset-bottom,0px)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;overflow:hidden;height:100vh;position:fixed;width:100%}
+.header{position:fixed;top:0;left:0;right:0;height:var(--header-height);background:var(--card);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:100;border-bottom:1px solid var(--border)}
+.header h1{font-size:17px;font-weight:700;color:var(--primary)}
+.header-date{font-size:11px;color:var(--text-light)}
+.content{position:fixed;top:var(--header-height);bottom:calc(var(--tab-height) + var(--safe-bottom));left:0;right:0;overflow-y:auto;overflow-x:hidden;padding:14px 14px 24px;-webkit-overflow-scrolling:touch}
+.page{display:none;animation:fadeIn .25s}.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.tab-bar{position:fixed;bottom:0;left:0;right:0;height:calc(var(--tab-height) + var(--safe-bottom));background:var(--card);display:flex;border-top:1px solid var(--border);z-index:100;padding-bottom:var(--safe-bottom)}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:.15s;padding:6px 0}
+.tab-item.active{color:var(--primary)}
+.tab-item span{font-size:10px;font-weight:500}
+.tab-item svg{width:22px;height:22px}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px;margin-bottom:18px;border:1px solid var(--border)}
+.card-title{font-size:15px;font-weight:600;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat-card{background:var(--card);border-radius:var(--radius);box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid var(--border);padding:14px;position:relative;overflow:hidden;cursor:pointer;transition:.15s}
+.stat-card:active{transform:scale(.97)}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.stat-card.blue::after{background:var(--primary)}.stat-card.green::after{background:var(--success)}.stat-card.amber::after{background:var(--warning)}.stat-card.red::after{background:var(--danger)}
+.stat-label{font-size:12px;color:var(--text-light);margin-bottom:6px}
+.stat-value{font-size:22px;font-weight:700}
+.stat-sub{font-size:11px;color:var(--text-light);margin-top:2px}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:10px 16px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:.15s;white-space:nowrap;touch-action:manipulation}
+.btn:active{opacity:.8;transform:scale(.97)}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-success{background:var(--success);color:#fff}
+.btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text)}
+.btn-outline:active{background:var(--bg)}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:8px}
+.btn-danger{background:var(--danger);color:#fff}
+.badge{display:inline-block;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:600;white-space:nowrap}
+.badge-blue{background:var(--primary-light);color:var(--primary)}.badge-green{background:var(--success-light);color:var(--success)}.badge-amber{background:var(--warning-light);color:var(--warning)}.badge-red{background:var(--danger-light);color:var(--danger)}.badge-gray{background:#f1f5f9;color:var(--text-light)}.badge-purple{background:var(--purple-light);color:var(--purple)}
+.kanban-tabs{display:flex;gap:4px;background:#e2e8f0;padding:4px;border-radius:10px;margin-bottom:10px}
+.kanban-tab{flex:1;padding:7px 4px;text-align:center;font-size:11px;font-weight:500;border-radius:7px;cursor:pointer;transition:.15s;color:var(--text-light)}
+.kanban-tab.active{background:#fff;color:var(--primary);box-shadow:0 1px 2px rgba(0,0,0,.08);font-weight:600}
+.kanban-tab .tab-num{display:inline-block;background:var(--bg);padding:1px 5px;border-radius:8px;font-size:9px;margin-left:3px;color:var(--text-light)}
+.kanban-tab.active .tab-num{background:var(--primary-light);color:var(--primary)}
+.kanban-list{display:flex;flex-direction:column;gap:8px}
+.kanban-card{background:var(--card);border-radius:10px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.04);border-left:3px solid var(--primary);cursor:pointer;transition:.15s}
+.kanban-card:active{transform:scale(.99);background:#fafbfc}
+.kanban-card-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.kanban-card h5{font-size:14px;font-weight:600;flex:1;line-height:1.4}
+.kanban-card-meta{display:flex;flex-wrap:wrap;gap:6px;font-size:11px;color:var(--text-light);margin-bottom:6px}
+.kanban-card-meta span{display:inline-flex;align-items:center;gap:2px}
+.kanban-card .progress-bar{margin-top:6px}
+.progress-bar{width:100%;height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:4px}
+.progress-fill{height:100%;background:var(--primary);border-radius:2px;transition:width .3s}
+.todo-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.todo-item:last-child{border-bottom:none}
+.todo-checkbox{width:20px;height:20px;cursor:pointer;accent-color:var(--primary);flex-shrink:0}
+.todo-text{flex:1;font-size:13px;line-height:1.5}
+.todo-item.done .todo-text{text-decoration:line-through;opacity:.5}
+.account-item{display:flex;align-items:center;gap:12px;padding:10px;border-bottom:1px solid var(--border)}
+.account-item:last-child{border-bottom:none}
+.account-emoji{font-size:28px;flex-shrink:0;width:36px;text-align:center}
+.account-info{flex:1}.account-info h5{font-size:14px;font-weight:600}.account-info p{font-size:11px;color:var(--text-light)}
+.account-num{font-size:18px;font-weight:700;white-space:nowrap}
+.account-sub{font-size:10px;color:var(--text-light)}
+.empty{text-align:center;padding:24px;color:var(--text-light)}
+.empty p{font-size:13px;margin-top:6px}
+.chart-wrap{position:relative;height:220px;margin:0 -4px}
+.kb-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;text-align:left;border:2px solid transparent;transition:.15s;cursor:pointer;display:flex;gap:14px;align-items:center}
+.kb-card:active{border-color:var(--primary);background:#f8fafc;transform:scale(.99)}
+.kb-icon{font-size:32px;flex-shrink:0}
+.kb-content{flex:1;min-width:0}
+.kb-card h4{font-size:15px;font-weight:600;margin-bottom:4px}
+.kb-card p{font-size:11px;color:var(--text-light);line-height:1.5}
+.kb-arrow{color:var(--text-light);font-size:18px;flex-shrink:0}
+.sub-page{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:150;display:none;flex-direction:column}
+.sub-page.show{display:flex;animation:slideIn .25s}
+@keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+.sub-header{height:var(--header-height);background:var(--card);display:flex;align-items:center;padding:0 12px;gap:10px;border-bottom:1px solid var(--border);flex-shrink:0}
+.sub-back{width:32px;height:32px;border-radius:8px;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text)}
+.sub-back:active{background:var(--bg)}
+.sub-title{font-size:16px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sub-body{flex:1;overflow-y:auto;padding:14px;-webkit-overflow-scrolling:touch}
+.fin-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.fin-row:last-child{border-bottom:none}
+.fin-row .fin-info h5{font-size:13px;font-weight:500;margin-bottom:2px}
+.fin-row .fin-info p{font-size:10px;color:var(--text-light)}
+.fin-row .fin-amt{font-size:15px;font-weight:700}
+.fin-amt.income{color:#16a34a}.fin-amt.expense{color:#dc2626}
+.fin-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.fin-summary-card{background:var(--card);border-radius:10px;padding:12px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.fin-summary-card::after{content:"";position:absolute;top:0;left:0;right:0;height:3px}
+.fin-summary-card.income::after{background:#16a34a}.fin-summary-card.expense::after{background:#dc2626}.fin-summary-card.profit::after{background:#2563eb}.fin-summary-card.margin::after{background:#f59e0b}
+.fin-summary-label{font-size:11px;color:var(--text-light);margin-bottom:3px}
+.fin-summary-value{font-size:18px;font-weight:700}
+.fin-summary-sub{font-size:10px;color:var(--text-light);margin-top:2px}
+.fin-source{padding:10px;background:var(--card);border-radius:10px;box-shadow:var(--shadow);margin-bottom:10px}
+.fin-source-item{display:flex;justify-content:space-between;align-items:center;padding:7px 0;font-size:12px}
+.fin-source-item:not(:last-child){border-bottom:1px solid var(--border)}
+.fin-source-bar{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:4px}
+.fin-source-fill{height:100%;border-radius:3px}
+.proj-detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.proj-detail-row:last-child{border-bottom:none}
+.proj-detail-row .lbl{color:var(--text-light);font-size:11px}
+.proj-detail-row .val{font-weight:500}
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:200;justify-content:flex-end;align-items:flex-end}
+.modal-overlay.show{display:flex}
+.modal-sheet{background:var(--card);border-radius:16px 16px 0 0;padding:20px 16px;width:100%;max-height:85vh;overflow-y:auto;animation:slideUp .25s}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-sheet h3{font-size:16px;font-weight:600;margin-bottom:16px;text-align:center}
+.modal-actions{display:flex;gap:10px;margin-top:16px}
+.modal-actions .btn{flex:1;justify-content:center;padding:12px}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:12px;color:var(--text-light);margin-bottom:4px;font-weight:500}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none;-webkit-appearance:none;background:var(--card);color:var(--text)}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--primary)}
+.form-row{display:flex;gap:10px}.form-row .form-group{flex:1}
+.hot-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.hot-item:last-child{border-bottom:none}
+.hot-rank{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.r1{background:#dc2626}.r2{background:#f59e0b}.r3{background:#f97316}.r4,.r5{background:var(--text-light)}
+.hot-info h5{font-size:13px;font-weight:500}.hot-info p{font-size:11px;color:var(--text-light)}
+.section-title{font-size:13px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:.5px;margin:20px 0 10px;padding-top:4px}
+.section-title:first-child{margin-top:0}
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px}
+.tbl-wrap table{width:100%;border-collapse:collapse;font-size:12px;min-width:500px}
+.tbl-wrap th{text-align:left;padding:8px 10px;background:var(--bg);font-weight:600;color:var(--text-light);border-bottom:2px solid var(--border);font-size:11px;white-space:nowrap;position:sticky;top:0}
+.tbl-wrap td{padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl-wrap tr:active{background:#f8fafc}
+.fab{position:fixed;right:16px;bottom:calc(var(--tab-height) + var(--safe-bottom) + 20px);width:48px;height:48px;border-radius:24px;background:var(--primary);color:#fff;border:none;display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;box-shadow:0 4px 12px rgba(37,99,235,.4);z-index:99;transition:.2s}
+.fab:active{transform:scale(.92);box-shadow:0 2px 8px rgba(37,99,235,.3)}
+.toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:300;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+/* Sync dialog */
+.sync-dialog-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:300;display:none;justify-content:center;align-items:center}
+.sync-dialog-overlay.show{display:flex}
+.sync-dialog{background:var(--card);border-radius:var(--radius);padding:20px;width:90%;max-width:360px;box-shadow:0 10px 40px rgba(0,0,0,.15)}
+.sync-dialog h3{font-size:16px;margin-bottom:12px;text-align:center}
+.sync-dialog .sync-id-box{background:var(--bg);padding:10px 12px;border-radius:8px;font-size:12px;text-align:center;font-family:monospace;word-break:break-all;margin-bottom:8px;user-select:all;-webkit-user-select:all}
+.sync-dialog .sync-status{font-size:11px;text-align:center;margin:8px 0;padding:4px 8px;border-radius:6px}
+.sync-dialog .sync-status.online{background:var(--success-light);color:var(--success)}
+.sync-dialog .sync-status.offline{background:var(--danger-light);color:var(--danger)}
+.sync-dialog .sync-status.syncing{background:var(--warning-light);color:var(--warning)}
+.sync-url-hint{font-size:10px;color:var(--text-light);margin-top:6px;text-align:center;word-break:break-all}
+/* Login page */
+.login-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.login-card{background:var(--card);border-radius:var(--radius);box-shadow:0 4px 16px rgba(0,0,0,.08);padding:28px 24px;width:100%;max-width:340px;animation:fadeIn .4s}
+.login-logo{text-align:center;margin-bottom:20px}
+.login-logo .logo-icon{font-size:48px;display:block;margin-bottom:8px}
+.login-logo h2{font-size:20px;font-weight:700;color:var(--primary)}
+.login-logo p{font-size:12px;color:var(--text-light);margin-top:4px}
+.login-tabs{display:flex;gap:4px;background:var(--bg);padding:3px;border-radius:10px;margin-bottom:16px}
+.login-tab{flex:1;padding:8px;text-align:center;font-size:13px;font-weight:500;border-radius:8px;cursor:pointer;transition:.15s;color:var(--text-light)}
+.login-tab.active{background:var(--card);color:var(--primary);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.login-form .form-group{margin-bottom:14px}
+.login-form .form-group label{display:block;font-size:12px;color:var(--text-light);margin-bottom:5px;font-weight:500}
+.login-form .form-group input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;outline:none;background:var(--bg);color:var(--text)}
+.login-form .form-group input:focus{border-color:var(--primary);background:var(--card)}
+.login-btn{width:100%;padding:12px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;touch-action:manipulation;transition:.15s;margin-top:4px}
+.login-btn:active{opacity:.85;transform:scale(.98)}
+.login-error{font-size:12px;color:var(--danger);text-align:center;margin:8px 0;min-height:18px}
+.login-footer{text-align:center;margin-top:14px;font-size:11px;color:var(--text-light)}
+.login-footer a{color:var(--primary);cursor:pointer;text-decoration:underline}
+.login-user-info{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-light)}
+.login-user-info .logout-link{color:var(--danger);cursor:pointer;text-decoration:underline;font-size:10px}
+@media(min-width:768px){.content{max-width:600px;left:50%;transform:translateX(-50%);border-left:1px solid var(--border);border-right:1px solid var(--border)}.tab-bar{max-width:600px;left:50%;transform:translateX(-50%);border-left:1px solid var(--border);border-right:1px solid var(--border)}.fab{right:calc(50% - 284px)}}
+.actions-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.eq-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.eq-item:last-child{border-bottom:none}.eq-item h5{font-size:13px;font-weight:500}.eq-item p{font-size:11px;color:var(--text-light)}
+/* Action Menu */
+.action-menu-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:200;justify-content:flex-end;align-items:flex-end}
+.action-menu-overlay.show{display:flex}
+.action-menu-sheet{background:var(--card);border-radius:16px 16px 0 0;padding:16px 16px calc(20px + var(--safe-bottom));width:100%;animation:slideUp .25s}
+.action-menu-sheet h3{font-size:14px;font-weight:600;margin-bottom:12px;text-align:center;color:var(--text-light)}
+.action-menu-item{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:500;transition:.15s}
+.action-menu-item:active{background:var(--bg)}
+.action-menu-item-icon{font-size:20px;width:24px;text-align:center}
+/* Editable list */
+.editable-item{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--border)}
+.editable-item:last-child{border-bottom:none}
+.editable-item-info{flex:1;min-width:0}
+.editable-item-info h5{font-size:13px;font-weight:600}
+.editable-item-info p{font-size:11px;color:var(--text-light)}
+.editable-item-actions{display:flex;gap:4px;flex-shrink:0}
+/* Video / Advice / Remix cards */
+.video-card{background:var(--card);border-radius:10px;padding:12px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,.04);border-left:3px solid #dc2626}
+.video-card-title{font-size:13px;font-weight:600;margin-bottom:4px;line-height:1.4}
+.video-card-meta{font-size:11px;color:var(--text-light);display:flex;flex-wrap:wrap;gap:8px}
+.video-card-note{font-size:11px;color:var(--text);margin-top:6px;padding:6px 8px;background:var(--bg);border-radius:6px;line-height:1.5}
+.advice-card{background:var(--card);border-radius:10px;padding:12px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,.04);border-left:3px solid var(--warning)}
+.advice-card-title{font-size:13px;font-weight:600;margin-bottom:4px}
+.advice-card-cat{font-size:10px;color:var(--text-light);margin-bottom:6px}
+.advice-card-content{font-size:12px;line-height:1.6;color:var(--text)}
+.remix-card{background:var(--card);border-radius:10px;padding:12px;margin-bottom:8px;box-shadow:0 1px 2px rgba(0,0,0,.04);border-left:3px solid var(--purple)}
+.remix-card-title{font-size:13px;font-weight:600;margin-bottom:4px}
+.remix-card-meta{font-size:11px;color:var(--text-light);margin-bottom:6px}
+.remix-card-idea{font-size:12px;line-height:1.6;color:var(--text);padding:6px 8px;background:var(--bg);border-radius:6px}
+/* Platform links */
+.platform-links{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.platform-link{display:flex;align-items:center;gap:8px;padding:10px;border-radius:10px;background:var(--bg);cursor:pointer;transition:.15s;text-decoration:none;color:var(--text)}
+.platform-link:active{transform:scale(.97)}
+/* KB editable */
+.kb-item-row{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
+.kb-item-row:last-child{border-bottom:none}
+.kb-item-text{flex:1;font-size:13px;line-height:1.6}
+.kb-item-actions{display:flex;gap:4px;flex-shrink:0}
+.kb-add-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border:1.5px dashed var(--border);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text-light);transition:.15s;margin-top:8px;width:100%}
+.kb-add-btn:active{border-color:var(--primary);color:var(--primary)}
+.kb-section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+/* KB Search */
+.kb-search-wrap{margin-bottom:16px;position:relative}
+.kb-search-input{width:100%;padding:12px 16px 12px 42px;border:2px solid var(--border);border-radius:12px;font-size:14px;outline:none;background:var(--card);color:var(--text);transition:.2s}
+.kb-search-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light)}
+.kb-search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--text-light);pointer-events:none}
+.kb-search-tabs{display:flex;gap:6px;margin-bottom:12px}
+.kb-search-tab{flex:1;padding:8px;text-align:center;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;transition:.15s;border:1.5px solid var(--border);background:var(--bg);color:var(--text-light)}
+.kb-search-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.kb-search-results{margin-bottom:16px}
+.kb-search-result-item{background:var(--card);border-radius:10px;padding:12px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.04);border-left:3px solid var(--primary);cursor:pointer;transition:.15s}
+.kb-search-result-item:active{background:var(--bg)}
+.kb-search-result-item .result-cat{font-size:10px;color:var(--primary);font-weight:600;margin-bottom:2px;text-transform:uppercase}
+.kb-search-result-item .result-title{font-size:13px;font-weight:600;margin-bottom:2px}
+.kb-search-result-item .result-text{font-size:12px;color:var(--text-light);line-height:1.5}
+.kb-search-result-item.ai-result{border-left-color:var(--purple)}
+.kb-search-hint{font-size:11px;color:var(--text-light);text-align:center;padding:12px}
+.kb-search-loading{text-align:center;padding:20px;color:var(--text-light)}
+</style>
+</head>
+<body>
+<!-- ===== 登录页 ===== -->
+<div class="login-overlay" id="loginOverlay">
+<div class="login-card">
+<div class="login-logo"><span class="logo-icon">🏭</span><h2>蜀川鑫工作台</h2><p>CNC精密加工 · 注塑模具 · 经营管理</p></div>
+<div class="login-tabs"><div class="login-tab active" onclick="switchLoginTab('login')">登录</div><div class="login-tab" onclick="switchLoginTab('register')">注册</div></div>
+<div class="login-error" id="loginError"></div>
+<div class="login-form" id="loginForm">
+  <div class="form-group"><label>用户名</label><input id="l_username" type="text" placeholder="请输入用户名" autocomplete="username"></div>
+  <div class="form-group"><label>密码</label><input id="l_password" type="password" placeholder="请输入密码" autocomplete="current-password"></div>
+  <button class="login-btn" onclick="handleLogin()">登 录</button>
+</div>
+<div class="login-form" id="registerForm" style="display:none;">
+  <div class="form-group"><label>用户名</label><input id="r_username" type="text" placeholder="2-30个字符" autocomplete="username"></div>
+  <div class="form-group"><label>密码</label><input id="r_password" type="password" placeholder="至少6个字符" autocomplete="new-password"></div>
+  <div class="form-group"><label>确认密码</label><input id="r_password2" type="password" placeholder="再次输入密码" autocomplete="new-password"></div>
+  <button class="login-btn" onclick="handleRegister()">注 册</button>
+</div>
+<div class="login-footer"><span id="loginFooterText">还没有账号？</span> <a onclick="switchLoginTab('register')">立即注册</a></div>
+<div style="margin-top:14px;font-size:10px;color:var(--text-light);text-align:center;">登录后支持多设备实时同步数据</div>
+</div></div>
+<!-- ===== 主界面 ===== -->
+<div class="header"><h1>蜀川鑫工作台</h1><div style="display:flex;align-items:center;gap:6px;"><span class="login-user-info" id="loginUserInfo"></span><span id="syncBadge" style="font-size:9px;padding:2px 7px;border-radius:8px;background:#f1f5f9;color:var(--text-light);cursor:pointer;display:none;white-space:nowrap;" onclick="openSyncSettings()">🔄</span><span class="header-date" id="headerDate"></span></div></div>
+<div class="content" id="contentArea"></div>
+<div class="tab-bar">
+  <div class="tab-item active" data-tab="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>概览</span></div>
+  <div class="tab-item" data-tab="business"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>经营</span></div>
+  <div class="tab-item" data-tab="media"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span>自媒体</span></div>
+  <div class="tab-item" data-tab="knowledge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg><span>知识库</span></div>
+  <div class="tab-item" data-tab="personal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>个人</span></div>
+</div>
+<button class="fab" id="fabBtn" onclick="handleFab()">+</button>
+<div class="modal-overlay" id="modalOverlay"><div class="modal-sheet"><h3 id="modalTitle"></h3><div id="modalBody"></div><div class="modal-actions"><button class="btn btn-outline" onclick="closeModal()">取消</button><button class="btn btn-primary" id="modalSave">保存</button></div></div></div>
+<div class="action-menu-overlay" id="actionMenu"><div class="action-menu-sheet"><h3>选择操作</h3><div id="actionMenuBody"></div><div style="margin-top:8px"><button class="btn btn-outline" style="width:100%;justify-content:center" onclick="closeActionMenu()">取消</button></div></div></div>
+<div class="sync-dialog-overlay" id="syncDialog"><div class="sync-dialog"><h3>🔄 多设备同步</h3><div class="sync-id-box" id="syncIdDisplay"></div><div style="margin:8px 0;"><label style="font-size:11px;color:var(--text-light);display:block;margin-bottom:4px;">同步服务器地址 <span style="color:#16a34a;">(已自动检测)</span></label><input id="syncServerInput" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;background:var(--bg);" placeholder="自动检测中..."></div><div style="display:flex;gap:6px;margin:8px 0;"><button class="btn btn-primary btn-sm" style="flex:1;" onclick="saveSyncConfig()">💾 保存配置</button><button class="btn btn-sm btn-outline" style="flex:1;" onclick="copySyncId()">📋 复制地址</button></div><div class="sync-status" id="syncStatus">⚪ 连接中...</div><div style="display:flex;gap:8px;margin-top:8px;"><button class="btn btn-primary" style="flex:1;justify-content:center;padding:8px;" onclick="forcePushSync()">📤 立即推送</button><button class="btn btn-outline" style="flex:1;justify-content:center;padding:8px;" onclick="forcePullSync()">📥 立即拉取</button></div><div style="margin-top:8px;"><button class="btn btn-outline" style="width:100%;justify-content:center" onclick="disconnectSync()">🔌 断开同步</button></div><div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px;" id="syncDeployGuide"><h4 style="font-size:13px;margin-bottom:10px;text-align:center;">🆓 免费部署 · 无需服务器</h4><div style="font-size:11px;line-height:1.7;color:var(--text);"><div style="background:#ecfdf5;border:1px solid #86efac;border-radius:10px;padding:12px;margin-bottom:10px;"><div style="font-weight:600;margin-bottom:6px;color:#15803d;font-size:13px;">⭐ 推荐：Render.com 免费部署（一键式）</div><div style="font-size:10px;">✅ 完全免费 · 自动HTTPS · 无需信用卡<br>1. 打开 <a href="https://render.com" target="_blank" style="color:var(--primary);">render.com</a> → 用GitHub登录<br>2. 创建新Web Service → 连接GitHub仓库<br>3. 设置: Build为空 / Start为 node server.js<br>4. 部署完成后获得 https://xxx.onrender.com<br>5. 将此地址填入上方，即可多设备登录同步<br>⏱ 首次访问冷启动约30秒（免费版限制）</div></div><div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;"><div style="font-weight:600;margin-bottom:6px;font-size:13px;">🅱️ 备选：Fly.io 免费部署</div><div style="font-size:10px;">每月$5免费额度，小型应用完全够用<br>需要安装flyctl命令行工具，适合有技术基础的用户</div></div><div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;"><div style="font-weight:600;margin-bottom:6px;font-size:13px;">🏠 临时方案：局域网模式</div><div style="font-size:10px;">电脑运行 node server.js → 同一WiFi下手机访问 http://局域网IP:3456</div></div><div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:12px;margin-bottom:10px;"><div style="font-weight:600;margin-bottom:6px;color:#92400e;font-size:13px;">💡 温馨提示</div><div style="font-size:10px;color:#92400e;">本工作台已经前后端整合为一个应用。<br>部署到 Render 后，打开即用，无需另外配置前端！<br>所有设备用同一账号登录即可自动同步数据。</div></div></div></div><div style="margin-top:8px;"><button class="btn btn-outline" style="width:100%;justify-content:center" onclick="closeSyncDialog()">关闭</button></div></div></div>
+<div class="sub-page" id="subPage"><div class="sub-header"><button class="sub-back" onclick="closeSubPage()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button><div class="sub-title" id="subTitle">详情</div></div><div class="sub-body" id="subBody"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+// ============ Data ============
+const STORAGE_KEY = 'scx_mobile_v2';
+let DB = loadData();
+let currentTab = 'overview';
+let currentFabAction = null;
+let currentKBCat = null;
+let editingId = null;
+
+function loadData() {
+  try {
+    const d = localStorage.getItem(STORAGE_KEY);
+    if (d) {
+      const p = JSON.parse(d);
+      const def = getDefaultData();
+      if (!p.kbData) p.kbData = def.kbData;
+      if (!p.hotVideos) p.hotVideos = def.hotVideos;
+      if (!p.mediaAdvice) p.mediaAdvice = def.mediaAdvice;
+      if (!p.remixIdeas) p.remixIdeas = def.remixIdeas;
+      if (!p.monthlyAnalysis) p.monthlyAnalysis = def.monthlyAnalysis;
+      p.nid = p.nid || {};
+      ['hotVideo','advice','remix','kbItem','transaction','topic'].forEach(k => { if(!p.nid[k]) p.nid[k] = def.nid[k] || 1; });
+      return p;
+    }
+  } catch(e) {}
+  return getDefaultData();
+}
+function saveData() { saveLocal(); if (syncOnline && AUTH_TOKEN) debouncePush(); }
+function saveLocal() { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
+let pushTimeout = null;
+function debouncePush() { if (pushTimeout) clearTimeout(pushTimeout); pushTimeout = setTimeout(() => { pushToServer(); pushTimeout = null; }, 800); }
+
+function getDefaultKB() {
+  return {
+    mech:{title:'机械制造学习',icon:'🔧',desc:'CNC编程 · 加工工艺 · 材料知识 · 刀具选择',sections:[
+      {h:'G代码速查',items:['G00 快速定位 (G0 X100 Y50)','G01 直线插补 (G1 X100 Y50 F200)','G02/G03 顺/逆时针圆弧','G17/G18/G19 XY/YZ/ZX平面选择','G20/G21 英制/公制','G28 返回参考点','G41/G42 刀具半径左/右补偿','G43 刀具长度补偿 (+H_)','G54-G59 工件坐标系','G80 取消固定循环','G81-G89 钻孔/攻丝/镗孔循环','G90/G91 绝对/增量编程','G94/G95 每分/每转进给','M00 程序暂停 / M01 选择停止','M03/M04 主轴正/反转 / M05 主轴停止','M06 换刀 / M08/M09 冷却液开/关','M30 程序结束并返回']},
+      {h:'常用材料加工参数',items:['铝合金 6061: Vc=300-500m/min, F=0.1-0.2mm/r, 干式或乳化液','不锈钢 304: Vc=80-150m/min, F=0.05-0.15mm/r, 必须用冷却液','45#钢: Vc=120-200m/min, F=0.08-0.2mm/r, 乳化液','黄铜 H62: Vc=200-300m/min, F=0.1-0.15mm/r, 可干式','POM/尼龙: Vc=150-300m/min, F=0.1-0.2mm/r, 干式','钛合金 TC4: Vc=40-80m/min, F=0.05-0.1mm/r, 大量冷却液','硬铝 7075: Vc=200-400m/min, F=0.08-0.15mm/r','球墨铸铁: Vc=80-150m/min, F=0.1-0.2mm/r, 干式或微润']},
+      {h:'刀具选择',items:['D6-D10 硬质合金立铣刀: 通用加工、铝合金、不锈钢','D10-D20 玉米铣刀: 大平面粗加工、效率高','球头刀 R3-R6: 型腔精加工、3D曲面','牛鼻刀: 半精加工、斜面、型腔侧壁','钻头: 中心钻定位(2-3mm)→麻花钻→镗孔','丝锥: 攻丝前底孔 = 公称直径 - 螺距','涂层: TiAlN(高温合金)、AlCrN(不锈钢)、DLC(铝)、金刚石(石墨/碳纤维)','刀柄: BT30/BT40(国产)、HSK63(高速)、ER弹簧夹头']},
+      {h:'加工工艺路线',items:['工序1: 毛坯检验 → 划线(必要时)','工序2: 粗铣大平面 → 留余量0.5mm','工序3: 粗铣外形/型腔 → 留余量0.3mm','工序4: 钻孔、攻丝、镗孔','工序5: 精铣外形/型腔 → 达图要求','工序6: 钳工去毛刺、研磨','工序7: 质检(三坐标/卡尺/粗糙度仪)','工序8: 表面处理(阳极/电镀/喷涂)']},
+      {h:'常见缺陷对策',items:['尺寸超差: 检查刀具补偿、磨损、装夹、热变形','表面粗糙度差: 降切削速度、提进给、换新刀、调整冷却','振动/振纹: 减小径向切深、降低主轴转速、加固装夹','毛刺多: 优化切削参数、调整走刀方向、增加倒角刀','工件变形: 粗精分开、对称加工、热处理后加工','刀具崩刃: 降切削量、检查工件硬度、避开硬点']}
+    ]},
+    work:{title:'工作知识库',icon:'📋',desc:'公司流程 · 管理制度 · 安全规程 · 报价标准',sections:[
+      {h:'生产管理流程',items:['1. 客户询价 → 技术评估 → 报价单','2. 合同签订 → 收预付款(30-50%)','3. 工艺编制 → 程序编写 → 刀具准备','4. 毛坯采购 / 现有库存','5. 粗加工 → 质检(过程)','6. 精加工 → 终检(全尺寸)','7. 表面处理(委外) → 包装','8. 客户验收 → 尾款结算','9. 质量回访 → 客户档案更新']},
+      {h:'设备保养制度',items:['日常: 清洁、润滑点检查、冷却液位、滤网','每周: 导轨润滑、油雾器加油、气源排水','每月: 液压油位、电气柜清洁、皮带张力','每季: 主轴轴承异响、伺服电机温度、精度检测','每年: 大修(导轨研磨、丝杠检测、几何精度复检)','CNC: 主轴运行5000h必换轴承','注塑机: 模板平行度每季检测、合模力每年校准','火花机: 每天换工作液、每月清理过滤芯']},
+      {h:'安全生产规程',items:['操作前必读: 设备操作规程、SOP','必须穿戴: 护目镜、防砸鞋、紧身工作服','严禁: 戴手套操作旋转设备、女工长发不束','开机前: 检查急停按钮、空运行测试','运行中: 不开防护门、不量活、不调整刀具','断电: 维修保养前必断电挂牌','消防: 灭火器每季检查、通道严禁堵塞','工伤: 24h内上报、流程拍照取证']},
+      {h:'报价标准参考',items:['CNC加工费 = 工时 × 设备折旧 + 刀具耗材','三轴CNC工时费: ¥80-150/小时(含人工)','五轴CNC工时费: ¥200-400/小时','模具材料费 = 钢料重量 × 单价(模具钢¥25-60/kg)','表面处理: 阳极¥8-20/件(批)、电镀¥5-15/件','检验费: 全检按工时计、外协三坐标¥200-500/件','加急费: 标准 1.3-1.5 倍','最低订单: 不少于工时2小时 / 不低于¥300']},
+      {h:'质量检验流程',items:['首件检验: 新产品/换刀后必检','自检: 操作员每5-10件抽检','巡检: 质检员每2h抽检(关键尺寸)','末件检验: 批次完成全检','不合格: 隔离标识 → 返工/让步接收/报废','记录: 检验报告归档、保留3年','客户投诉: 8h响应、24h初步分析、72h解决方案']}
+    ]},
+    tech:{title:'技术知识库',icon:'⚙️',desc:'模具设计 · 注塑工艺 · 质量标准 · 表面处理',sections:[
+      {h:'注塑模具设计要点',items:['分型面: 尽量在产品轮廓线上、便于脱模','浇口: 大产品侧浇口、小产品点浇口、薄壁潜水口','冷却水路: 距型腔壁距离 = 3D(D为水管直径)','顶出: 顶针/司筒/推板, 数量按面积计算','排气: 型腔末端、分型面, 深度0.01-0.03mm','拔模斜度: 0.5°-1.5°(外观件1°+)','壁厚: 均匀, 差异不超过25%','加强筋: 厚度 = 壁厚 × 0.5-0.7','R角: 内R≥壁厚×0.3, 外R≥壁厚×0.5']},
+      {h:'常用塑料注塑参数',items:['ABS: 料筒180-220°C, 模温60-80°C, 注射压力80-100MPa','PP: 料筒180-240°C, 模温30-60°C, 压力60-90MPa','PC: 料筒260-310°C, 模温80-100°C, 压力80-120MPa','PA66(尼龙): 料筒260-290°C, 模温60-100°C, 压力80-110MPa','POM: 料筒180-210°C, 模温80-100°C, 压力80-110MPa','PMMA(亚克力): 料筒190-230°C, 模温40-60°C','PBT: 料筒230-260°C, 模温60-80°C','干燥: ABS 80°C×2h, PC 120°C×4h, PA66 80°C×8h']},
+      {h:'注塑缺陷对策',items:['缺料: 提料温、提射速、提射压、加大浇口','飞边: 降锁模力、降低料温/模温、清理分型面','缩水: 加大保压、提保压时间、加大冷却、加厚壁','银纹: 充分干燥原料、降剪切、提模温','熔接线: 提模温、提料温、改浇口位置、设冷料井','变形: 延长冷却、降模温、检查顶出平衡','气泡: 调整保压切换点、提料温、检查排气','黑点/焦烧: 清料筒、提背压、降射速']},
+      {h:'表面处理标准',items:['阳极氧化(铝): 膜厚5-25μm, 盐雾48-1000h, 染色可选','硬质阳极: 膜厚25-150μm, 硬度HV300-500','电镀锌: 蓝白/彩锌/黑锌, 盐雾24-96h','电镀镍: 装饰镀/功能镀, 厚度5-25μm','电镀铬: 装饰/硬铬(磨具), 硬铬HV800-1000','喷涂: 静电喷粉60-80μm / 喷漆15-25μm','喷砂: 表面粗化、除锈、亚光效果','抛光: 镜面Ra<0.025μm(模具)、Ra<0.4μm(产品)','发黑: 钢铁氧化膜, 防锈+装饰, 盐雾<4h']},
+      {h:'质量检测标准',items:['尺寸公差: 一般±0.1mm, 精密±0.05mm, 高精密±0.01mm','形位公差: 图纸标注, 垂直度/平行度/圆度/同轴度','表面粗糙度: 粗加工Ra3.2, 半精Ra1.6, 精Ra0.8, 镜面Ra0.05','三坐标: 关键尺寸100%或抽样, 报告归档','硬度: 模具HRC58-62, 产品按图要求','盐雾测试: 镀层耐腐蚀性, 中性盐雾5%NaCl','附着力: 百格测试(3M胶带), 涂层≥4B','材质报告: 钢厂质保书+必要时光谱复检']}
+    ]}
+  };
+}
+
+function getDefaultData() {
+  const t = new Date().toISOString().slice(0,10);
+  return {
+    projects:[{id:1,name:'铝合金外壳CNC加工',client:'张总',status:'produce',deadline:'2026-08-05',budget:35000,progress:60,notes:'500件，阳极氧化'},{id:2,name:'注塑模具-家电外壳',client:'李经理',status:'quote',deadline:'2026-08-20',budget:80000,progress:10},{id:3,name:'不锈钢法兰盘',client:'王工',status:'qc',deadline:'2026-07-30',budget:22000,progress:90},{id:4,name:'铜电极加工',client:'赵总',status:'done',deadline:'2026-07-15',budget:15000,progress:100}],
+    customers:[{id:1,name:'张伟',company:'深圳XX科技',phone:'138xxxx1234',orders:12,amount:285000,contact:'2026-07-20',paid:285000,unpaid:0},{id:2,name:'李明',company:'东莞YY模具',phone:'139xxxx5678',orders:8,amount:156000,contact:'2026-07-18',paid:120000,unpaid:36000},{id:3,name:'王强',company:'广州ZZ机械',phone:'137xxxx9012',orders:15,amount:420000,contact:'2026-07-25',paid:350000,unpaid:70000}],
+    employees:[{id:1,name:'刘师傅',role:'CNC操作员',phone:'135xx1111',status:'在岗',task:'铝合金外壳加工'},{id:2,name:'陈师傅',role:'模具师傅',phone:'136xx2222',status:'在岗',task:'模具设计'},{id:3,name:'小周',role:'质检员',phone:'133xx3333',status:'在岗',task:'法兰盘质检'},{id:4,name:'小吴',role:'学徒',phone:'134xx4444',status:'休假',task:'-'}],
+    equipment:[{id:1,name:'CNC-1',model:'VMC850',status:'运行中',last:'2026-07-01',next:'2026-08-01'},{id:2,name:'CNC-2',model:'VMC1060',status:'运行中',last:'2026-07-01',next:'2026-08-01'},{id:3,name:'注塑机-1',model:'HTF160',status:'运行中',last:'2026-06-15',next:'2026-07-15'},{id:4,name:'火花机-1',model:'A50',status:'维护中',last:'2026-07-25',next:'2026-07-28'}],
+    finance:[{id:1,month:'2026-03',income:86000,expense:52000},{id:2,month:'2026-04',income:92000,expense:58000},{id:3,month:'2026-05',income:105000,expense:61000},{id:4,month:'2026-06',income:98000,expense:55000},{id:5,month:'2026-07',income:112000,expense:63000}],
+    transactions:[
+      {id:1,date:'2026-07-25',type:'income',amount:35000,source:'CNC加工',client:'张总',note:'铝合金外壳'},
+      {id:2,date:'2026-07-22',type:'income',amount:15000,source:'铜电极',client:'赵总',note:'50件'},
+      {id:3,date:'2026-07-20',type:'expense',amount:12000,source:'材料采购',client:'',note:'6061铝板 200kg'},
+      {id:4,date:'2026-07-18',type:'expense',amount:8500,source:'设备维护',client:'',note:'火花机维修'},
+      {id:5,date:'2026-07-15',type:'income',amount:22000,source:'CNC加工',client:'王工',note:'不锈钢法兰盘'},
+      {id:6,date:'2026-07-12',type:'expense',amount:6000,source:'表面处理',client:'',note:'阳极氧化 300件'},
+      {id:7,date:'2026-07-10',type:'income',amount:40000,source:'注塑模具',client:'李经理',note:'模具开发预付款'},
+      {id:8,date:'2026-07-08',type:'expense',amount:18000,source:'人工工资',client:'',note:'员工7月工资'}
+    ],
+    accounts:[{id:1,plt:'抖音',name:'蜀川鑫CNC',fans:12500,views:8500,likes:320,cmt:45},{id:2,plt:'快手',name:'蜀川鑫加工',fans:8200,views:5200,likes:180,cmt:28},{id:3,plt:'小红书',name:'蜀川鑫制造',fans:5600,views:3200,likes:210,cmt:35},{id:4,plt:'B站',name:'蜀川鑫机械',fans:3400,views:2800,likes:150,cmt:22}],
+    topics:[{id:1,date:t,plt:'抖音',topic:'CNC加工铝合金全过程',type:'实操展示',status:'已发布'},{id:2,date:t,plt:'小红书',topic:'注塑模具设计避坑指南',type:'知识分享',status:'待拍摄'},{id:3,date:t,plt:'B站',topic:'5轴CNC vs 3轴CNC',type:'科普对比',status:'选题中'}],
+    mdata:[{id:1,date:t,plt:'抖音',views:8500,likes:320,cmt:45,share:28,newFans:65},{id:2,date:t,plt:'快手',views:5200,likes:180,cmt:28,share:15,newFans:38},{id:3,date:t,plt:'小红书',views:3200,likes:210,cmt:35,share:12,newFans:42},{id:4,date:t,plt:'B站',views:2800,likes:150,cmt:22,share:8,newFans:25}],
+    todos:[{id:1,txt:'确认阳极氧化供应商报价',pri:'high',status:'pending',due:t,cat:'经营'},{id:2,txt:'回复王工法兰盘质检报告',pri:'high',status:'pending',due:t,cat:'经营'},{id:3,txt:'拍摄CNC加工素材(抖音)',pri:'medium',status:'pending',due:t,cat:'自媒体'},{id:4,txt:'火花机维护后验收',pri:'medium',status:'pending',due:t,cat:'设备'},{id:5,txt:'整理本月财务报表',pri:'low',status:'pending',due:t,cat:'财务'},{id:6,txt:'更新模具报价单模板',pri:'low',status:'done',due:t,cat:'经营'}],
+    logs:[{id:1,date:t,content:'完成铝合金外壳首批100件CNC粗加工，进度正常。火花机维护中。王工法兰盘检出3件超差需返工。',mood:'正常'}],
+    kbData: getDefaultKB(),
+    hotVideos:[
+      {id:1,plt:'抖音',title:'CNC五轴加工航空件全过程',author:'@机械大神',views:'128万',likes:'5.2万',link:'https://www.douyin.com/search/CNC%E4%BA%94%E8%BD%B4%E5%8A%A0%E5%B7%A5',note:'五轴联动拍摄角度好，可借鉴镜头语言',date:t},
+      {id:2,plt:'小红书',title:'模具厂日常vlog - 从图纸到成品',author:'@模具女孩',views:'56万',likes:'3.1万',link:'https://www.xiaohongshu.com/search_result?keyword=%E6%A8%A1%E5%85%B7%E5%8E%82',note:'vlog形式互动率高，适合小红书',date:t}
+    ],
+    mediaAdvice:[
+      {id:1,date:t,title:'坚持日更抖音',content:'抖音算法偏向日更账号，建议每天至少发1条。最佳发布时间：11:30-12:30、18:00-20:00。前3秒必须抓眼球。',cat:'发布策略'},
+      {id:2,date:t,title:'小红书图文+视频双发',content:'小红书图文笔记权重高，建议每个选题同时出图文和视频版本，覆盖更多流量入口。标题要有数字和痛点。',cat:'平台策略'},
+      {id:3,date:t,title:'B站适合深度内容',content:'B站用户喜欢5-10分钟深度技术视频，CNC编程教程、模具设计流程等适合做成系列。弹幕互动能提升推荐。',cat:'内容方向'}
+    ],
+    remixIdeas:[
+      {id:1,date:t,source:'抖音@机械大神',original:'CNC五轴加工航空件',idea:'用我们的三轴CNC加工类似零件，对比五轴和三轴的效率差异，做一期"三轴也能干"系列',plt:'抖音',status:'待执行'},
+      {id:2,date:t,source:'小红书@模具女孩',original:'模具厂日常vlog',idea:'模仿vlog形式，拍摄我们工作室的一天，从早会到收工，加入CNC加工特写镜头',plt:'小红书',status:'待执行'}
+    ],
+    monthlyAnalysis:{lastGenerated:'',months:{}},
+    nid:{project:5,customer:4,employee:5,equipment:5,finance:6,account:5,topic:4,todo:7,log:2,mdata:5,hotVideo:3,advice:4,remix:3,kbItem:100,transaction:9}
+  };
+}
+
+// ============ Navigation ============
+document.querySelectorAll('.tab-item').forEach(item => { item.addEventListener('click', () => { switchTab(item.dataset.tab); }); });
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  const content = document.getElementById('contentArea');
+  const pages = { overview:renderOverview, business:renderBusiness, media:renderMedia, knowledge:renderKnowledge, personal:renderPersonal };
+  if (pages[tab]) {
+    content.innerHTML = '<div class="page active">' + pages[tab]() + '</div>';
+    if (tab === 'overview') setTimeout(renderOverviewCharts, 100);
+    if (tab === 'business') setTimeout(renderBusinessCharts, 100);
+    if (tab === 'media') setTimeout(renderMediaCharts, 100);
+  }
+  updateFab();
+  content.scrollTop = 0;
+}
+
+// ============ Header ============
+function updateHeader() {
+  const now = new Date();
+  const m = ['1','2','3','4','5','6','7','8','9','10','11','12'];
+  const w = ['日','一','二','三','四','五','六'];
+  document.getElementById('headerDate').textContent = m[now.getMonth()]+'月'+now.getDate()+'日 周'+w[now.getDay()];
+}
+updateHeader();
+
+// ============ FAB ============
+function updateFab() {
+  const fab = document.getElementById('fabBtn');
+  fab.style.display = ['business','media','personal','knowledge'].includes(currentTab) ? 'flex' : 'none';
+}
+function handleFab() {
+  const actions = {
+    business:[
+      {icon:'📦',label:'新建项目',act:"openSheet('project')"},
+      {icon:'👤',label:'添加客户',act:"openSheet('customer')"},
+      {icon:'👷',label:'添加员工',act:"openSheet('employee')"},
+      {icon:'🔧',label:'添加设备',act:"openSheet('equipment')"},
+      {icon:'💰',label:'记一笔流水',act:"openSheet('transaction')"}
+    ],
+    media:[
+      {icon:'📱',label:'添加账号',act:"openSheet('account')"},
+      {icon:'🔥',label:'添加热门视频',act:"openSheet('hotVideo')"},
+      {icon:'💡',label:'添加运营建议',act:"openSheet('advice')"},
+      {icon:'🎬',label:'添加二创灵感',act:"openSheet('remix')"},
+      {icon:'📝',label:'添加选题',act:"openSheet('topic')"},
+      {icon:'📊',label:'记录数据',act:"openSheet('mediaData')"}
+    ],
+    personal:[
+      {icon:'✅',label:'新建待办',act:"openSheet('todo')"},
+      {icon:'📔',label:'写日志',act:"openSheet('log')"}
+    ],
+    knowledge:[
+      {icon:'📂',label:'新增条目',act:"openSheet('kbItem')"},
+      {icon:'📑',label:'新增分类',act:"openSheet('kbSection')"}
+    ]
+  };
+  const items = actions[currentTab] || [];
+  if (!items.length) return;
+  document.getElementById('actionMenuBody').innerHTML = items.map(a =>
+    '<div class="action-menu-item" onclick="closeActionMenu();'+a.act+'"><span class="action-menu-item-icon">'+a.icon+'</span>'+a.label+'</div>'
+  ).join('');
+  document.getElementById('actionMenu').classList.add('show');
+}
+function closeActionMenu() { document.getElementById('actionMenu').classList.remove('show'); }
+document.getElementById('actionMenu').addEventListener('click', e => { if(e.target===e.currentTarget) closeActionMenu(); });
+
+// ============ Toast ============
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ============ Overview ============
+function renderOverview() {
+  const active = DB.projects.filter(p=>p.status!=='done');
+  const curM = new Date().toISOString().slice(0,7);
+  const fin = DB.finance.find(f=>f.month===curM) || DB.finance[DB.finance.length-1];
+  const pending = DB.todos.filter(t=>t.status==='pending');
+  const totalFans = DB.accounts.reduce((s,a)=>s+a.fans,0);
+  const statH = '<div class="stat-grid">'+
+    '<div class="stat-card blue" onclick="switchTab(\'business\')"><div class="stat-label">进行中项目</div><div class="stat-value">'+active.length+'</div><div class="stat-sub">共 '+DB.projects.length+' 个项目 · 点击查看 →</div></div>'+
+    '<div class="stat-card green" onclick="openSubPage(\'finance\')"><div class="stat-label">本月收入</div><div class="stat-value">¥'+(fin.income/10000).toFixed(1)+'万</div><div class="stat-sub">利润 ¥'+((fin.income-fin.expense)/10000).toFixed(1)+'万 · 点击查看 →</div></div>'+
+    '<div class="stat-card amber" onclick="switchTab(\'personal\')"><div class="stat-label">待办事项</div><div class="stat-value">'+pending.length+'</div><div class="stat-sub">'+pending.filter(t=>t.pri==='high').length+'项紧急 · 点击查看 →</div></div>'+
+    '<div class="stat-card red" onclick="switchTab(\'media\')"><div class="stat-label">自媒体粉丝</div><div class="stat-value">'+totalFans.toLocaleString()+'</div><div class="stat-sub">'+DB.accounts.length+'个平台 · 点击查看 →</div></div></div>';
+  const todoH = pending.length ? pending.slice(0,5).map(t=>
+    '<div class="todo-item"><input type="checkbox" class="todo-checkbox" onchange="quickToggle('+t.id+')"><span class="todo-text">'+t.txt+'</span><span class="badge '+(t.pri==='high'?'badge-red':t.pri==='medium'?'badge-amber':'badge-gray')+'">'+(t.pri==='high'?'紧急':'重要')+'</span></div>'
+  ).join('') : '<div class="empty"><p>暂无待办</p></div>';
+  const projH = DB.projects.slice(0,5).map(p=>
+    '<div class="kanban-card" style="border-left-color:'+(p.status==='done'?'#16a34a':p.status==='produce'?'#2563eb':p.status==='qc'?'#f59e0b':'#94a3b8')+'" onclick="openProjectDetail('+p.id+')">'+
+    '<div class="kanban-card-row"><h5>'+p.name+'</h5><span class="badge '+(p.status==='done'?'badge-green':p.status==='produce'?'badge-blue':p.status==='qc'?'badge-amber':'badge-gray')+'">'+(p.status==='quote'?'报价':p.status==='produce'?'生产':p.status==='qc'?'质检':'交付')+'</span></div>'+
+    '<div class="kanban-card-meta"><span>👤 '+p.client+'</span><span>💰 ¥'+p.budget.toLocaleString()+'</span><span>📅 '+p.deadline+'</span></div>'+
+    '<div class="progress-bar"><div class="progress-fill" style="width:'+p.progress+'%"></div></div></div>'
+  ).join('');
+  return statH +
+    '<div class="card"><div class="card-title"><span>今日待办</span></div>'+todoH+'</div>'+
+    '<div class="card"><div class="card-title"><span>近期项目</span></div>'+projH+'</div>'+
+    '<div class="card"><div class="card-title"><span>收支趋势</span></div><div class="chart-wrap"><canvas id="ovFinanceChart"></canvas></div></div>'+
+    '<div class="card"><div class="card-title"><span>📊 数据分析 · 上月经营概况</span><span style="font-size:11px;color:var(--primary);" onclick="generateMonthlyAnalysis();switchTab(\'overview\')">刷新 →</span></div>'+renderMonthlyAnalysis()+'</div>';
+}
+
+// ============ Monthly Analysis ============
+function getLastMonth() { const d=new Date(); d.setDate(0); return d.toISOString().slice(0,7); }
+function getMonthLabel(m) { const parts=m.split('-'); const labels=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']; return parts[0]+'年'+labels[parseInt(parts[1])-1]; }
+function generateMonthlyAnalysis() {
+  const lm = getLastMonth();
+  const now = new Date(); const today = now.toISOString().slice(0,10);
+  // If already generated this month, skip
+  if (DB.monthlyAnalysis.lastGenerated === lm) return renderMonthlyAnalysis();
+  const fin = DB.finance.filter(f=>f.month===lm);
+  if (!fin.length) { DB.monthlyAnalysis.months[lm] = '<div class="empty"><p>暂无'+getMonthLabel(lm)+'的财务数据</p><p style="font-size:11px;color:var(--text-light);">请先在经营管理 → 财务模块录入数据</p></div>'; DB.monthlyAnalysis.lastGenerated=lm; saveData(); return DB.monthlyAnalysis.months[lm]; }
+  const rev = fin.reduce((s,f)=>s+f.income,0) || 1;
+  const exp = fin.reduce((s,f)=>s+f.expense,0);
+  const prof = rev - exp;
+  const margin = (prof/rev*100).toFixed(1);
+  // Compare with previous month
+  const pm = new Date(lm+'-01'); pm.setMonth(pm.getMonth()-1);
+  const pml = pm.toISOString().slice(0,7);
+  const pfin = DB.finance.find(f=>f.month===pml);
+  let revCh='-', expCh='-', profCh='-';
+  if(pfin) { revCh=(pfin.income?(rev-pfin.income)/pfin.income*100:0).toFixed(1); expCh=(pfin.expense?(exp-pfin.expense)/pfin.expense*100:0).toFixed(1); const pprof=pfin.income-pfin.expense; profCh=(pprof?(prof-pprof)/Math.abs(pprof)*100:0).toFixed(1); }
+  const chStr = v=>{ const n=parseFloat(v); return n>0?'<span style="color:#dc2626;">↑'+Math.abs(n)+'%</span>':n<0?'<span style="color:#16a34a;">↓'+Math.abs(n)+'%</span>':'持平'; };
+  // Business stats
+  const allProj = DB.projects.filter(p=>p.deadline>=lm+'-01'&&p.deadline<=lm+'-31');
+  const doneProj = allProj.filter(p=>p.status==='done');
+  const txs = DB.transactions.filter(t=>t.date>=lm+'-01'&&t.date<=lm+'-31');
+  const incomeTxs = txs.filter(t=>t.type==='income');
+  const topCust = incomeTxs.reduce((m,t)=>{m[t.client]=m[t.client]||{client:t.client,amt:0};m[t.client].amt+=t.amount;return m;},{});
+  const topArr = Object.values(topCust).sort((a,b)=>b.amt-a.amt);
+  const topC = topArr.length?topArr[0]:null;
+  // Build analysis HTML
+  const cmp = pfin ? '<div style="font-size:11px;color:var(--text-light);margin-top:4px;">环比上月：收入 '+chStr(revCh)+' · 支出 '+chStr(expCh)+' · 利润 '+chStr(profCh)+'</div>' : '<div style="font-size:11px;color:var(--text-light);margin-top:4px;">上月无对比数据</div>';
+  let h = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">';
+  h += '<div class="fin-summary-card income"><div class="fin-summary-label">📈 上月收入</div><div class="fin-summary-value">¥'+rev.toLocaleString()+'</div><div class="fin-summary-sub">'+getMonthLabel(lm)+'</div></div>';
+  h += '<div class="fin-summary-card expense"><div class="fin-summary-label">📉 上月支出</div><div class="fin-summary-value">¥'+exp.toLocaleString()+'</div><div class="fin-summary-sub">利润率 '+margin+'%</div></div>';
+  h += '<div class="fin-summary-card profit"><div class="fin-summary-label">💰 上月利润</div><div class="fin-summary-value" style="color:'+(prof>=0?'#16a34a':'#dc2626')+';">¥'+prof.toLocaleString()+'</div>'+cmp+'</div>';
+  h += '<div class="fin-summary-card margin"><div class="fin-summary-label">📦 业务统计</div><div class="fin-summary-value">'+(doneProj.length||0)+'/'+(allProj.length||0)+'个</div><div class="fin-summary-sub">完成/到期项目'+(topC?' · 大客户'+topC.client:'')+'</div></div>';
+  h += '</div>';
+  // Analysis text
+  h += '<div style="background:var(--primary-light);border-radius:10px;padding:12px;font-size:12px;line-height:1.8;">';
+  h += '<div style="font-weight:600;margin-bottom:6px;">📝 AI 经营分析</div>';
+  if (prof > 0) h += '✅ '+getMonthLabel(lm)+'实现盈利 ¥'+prof.toLocaleString()+'，利润率 '+margin+'%。';
+  else h += '⚠️ '+getMonthLabel(lm)+'出现亏损 ¥'+Math.abs(prof).toLocaleString()+'，需重点关注成本控制。';
+  if (pfin && parseFloat(revCh)>0) h += '收入环比增长 '+Math.abs(parseFloat(revCh)).toFixed(1)+'%，业务呈上升趋势。';
+  else if (pfin && parseFloat(revCh)<0) h += '收入环比下降 '+Math.abs(parseFloat(revCh)).toFixed(1)+'%，需分析原因并加强获客。';
+  if (doneProj.length>0) h += '共完成 '+doneProj.length+' 个项目，项目交付率 '+(doneProj.length/allProj.length*100).toFixed(0)+'%。';
+  else h += '上月无项目完成交付，需关注项目进度。';
+  if (topC) h += '最大客户为「'+topC.client+'」，贡献收入 ¥'+topC.amt.toLocaleString()+'。';
+  h += '</div>';
+  DB.monthlyAnalysis.months[lm] = h;
+  DB.monthlyAnalysis.lastGenerated = lm;
+  saveData();
+  return h;
+}
+function renderMonthlyAnalysis() {
+  const lm = getLastMonth();
+  if (!DB.monthlyAnalysis || !DB.monthlyAnalysis.months[lm]) {
+    return generateMonthlyAnalysis();
+  }
+  return DB.monthlyAnalysis.months[lm];
+}
+let ovFCInst;
+function renderOverviewCharts() {
+  const fCtx=document.getElementById('ovFinanceChart');
+  if(fCtx){if(ovFCInst)ovFCInst.destroy();ovFCInst=new Chart(fCtx,{type:'bar',data:{labels:DB.finance.map(f=>f.month),datasets:[{label:'收入',data:DB.finance.map(f=>f.income),backgroundColor:'#2563eb',borderRadius:6},{label:'支出',data:DB.finance.map(f=>f.expense),backgroundColor:'#dc2626',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}},scales:{y:{ticks:{font:{size:9}}},x:{ticks:{font:{size:9}}}}}});}
+}
+function quickToggle(id){const t=DB.todos.find(x=>x.id===id);if(t){t.status=t.status==='done'?'pending':'done';saveData();switchTab('overview');}}
+
+// ============ Business ============
+let currentKanbanTab='produce';
+function renderBusiness() {
+  const kanbanCols={quote:'报价中',produce:'生产中',qc:'质检中',done:'已交付'};
+  const kanbanColors={quote:'#94a3b8',produce:'#2563eb',qc:'#f59e0b',done:'#16a34a'};
+  const kanbanLabels={quote:'报价',produce:'生产',qc:'质检',done:'已交付'};
+  const tabsH=Object.entries(kanbanCols).map(([k,v])=>{
+    const cnt=DB.projects.filter(p=>p.status===k).length;
+    return '<div class="kanban-tab '+(k===currentKanbanTab?'active':'')+'" onclick="switchKanbanTab(\''+k+'\')">'+v+'<span class="tab-num">'+cnt+'</span></div>';
+  }).join('');
+  const items=DB.projects.filter(p=>p.status===currentKanbanTab);
+  const listH=items.length?items.map(p=>
+    '<div class="kanban-card" style="border-left-color:'+kanbanColors[currentKanbanTab]+'" onclick="openProjectDetail('+p.id+')">'+
+    '<div class="kanban-card-row"><h5>'+p.name+'</h5><span class="badge '+(currentKanbanTab==='done'?'badge-green':currentKanbanTab==='produce'?'badge-blue':currentKanbanTab==='qc'?'badge-amber':'badge-gray')+'">'+kanbanLabels[currentKanbanTab]+'</span></div>'+
+    '<div class="kanban-card-meta"><span>👤 '+p.client+'</span><span>💰 ¥'+p.budget.toLocaleString()+'</span><span>📅 '+p.deadline+'</span></div>'+
+    '<div class="progress-bar"><div class="progress-fill" style="width:'+p.progress+'%"></div></div>'+
+    '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">'+
+    (currentKanbanTab!=='done'?'<button class="btn btn-sm btn-outline" onclick="advProject('+p.id+');event.stopPropagation();" style="font-size:11px;padding:5px 10px;">推进 →</button>':'<span style="font-size:11px;color:var(--text-light);">✅ 已完成</span>')+
+    '<button class="btn btn-sm btn-outline" onclick="editProject('+p.id+');event.stopPropagation();" style="font-size:11px;padding:5px 10px;">编辑</button>'+
+    '<button class="btn btn-sm btn-outline" onclick="delProject('+p.id+');event.stopPropagation();" style="font-size:11px;padding:5px 10px;color:#dc2626;">删除</button>'+
+    '<button class="btn btn-sm btn-outline" onclick="openProjectDetail('+p.id+');event.stopPropagation();" style="font-size:11px;padding:5px 10px;flex:1;justify-content:center;">详情</button></div></div>'
+  ).join(''):'<div class="empty"><p>该状态下暂无项目</p></div>';
+  const eqH=DB.equipment.map(e=>
+    '<div class="editable-item"><div class="editable-item-info"><h5>'+e.name+' <span style="color:var(--text-light);font-size:11px;">'+e.model+'</span></h5><p>维护: '+e.last+' → '+e.next+'</p></div><span class="badge '+(e.status==='运行中'?'badge-green':e.status==='维护中'?'badge-amber':'badge-gray')+'">'+e.status+'</span><div class="editable-item-actions"><button class="btn btn-sm btn-outline" onclick="editEquipment('+e.id+');event.stopPropagation();" style="font-size:11px;padding:4px 8px;">编辑</button><button class="btn btn-sm btn-outline" onclick="delEquipment('+e.id+');event.stopPropagation();" style="font-size:11px;padding:4px 8px;color:#dc2626;">删</button></div></div>'
+  ).join('');
+  const custH=DB.customers.map(c=>{
+    const cpaid=c.paid||0; const cunpaid=c.unpaid||0; const camt=c.amount||0;
+    const unpaidBadge=cunpaid>0?'<span style="color:#dc2626;font-weight:600;"> · 未付 ¥'+cunpaid.toLocaleString()+'</span>':'<span style="color:#16a34a;"> · 已结清</span>';
+    return '<div class="editable-item"><div class="editable-item-info"><h5>'+c.name+' <span style="color:var(--text-light);font-size:11px;">'+c.company+'</span></h5><p>'+c.phone+' · '+c.orders+'单 总额 ¥'+camt.toLocaleString()+' · 已付 ¥'+cpaid.toLocaleString()+unpaidBadge+'</p></div><div class="editable-item-actions"><button class="btn btn-sm btn-outline" onclick="editCustomer('+c.id+');event.stopPropagation();" style="font-size:11px;padding:4px 8px;">编辑</button><button class="btn btn-sm btn-outline" onclick="delCustomer('+c.id+');event.stopPropagation();" style="font-size:11px;padding:4px 8px;color:#dc2626;">删</button></div></div>';
+  }).join('');
+  const empH=DB.employees.map(e=>
+    '<div class="editable-item"><div class="editable-item-info"><h5>'+e.name+' <span style="color:var(--text-light);font-size:11px;">'+e.role+'</span></h5><p>'+e.phone+' · '+e.task+'</p></div><span class="badge '+(e.status==='在岗'?'badge-green':'badge-gray')+'">'+e.status+'</span><div class="editable-item-actions"><button class="btn btn-sm btn-outline" onclick="editEmployee('+e.id+');event.stopPropagation();" style="font-size:11px;padding:4px 8px;">编辑</button><button class="btn btn-sm btn-outline" onclick="delEmployee('+e.id+');event.stopPropagation();" style="font-size:11px;padding:4px 8px;color:#dc2626;">删</button></div></div>'
+  ).join('');
+  return '<div class="card"><div class="card-title"><span>项目看板</span><span style="font-size:11px;color:var(--text-light);">共 '+DB.projects.length+' 个</span></div><div class="kanban-tabs">'+tabsH+'</div><div class="kanban-list">'+listH+'</div></div>'+
+    '<div class="card"><div class="card-title"><span>财务走势</span><span style="font-size:11px;color:var(--primary);" onclick="openSubPage(\'finance\')">查看明细 →</span></div><div class="chart-wrap"><canvas id="bizFinanceChart"></canvas></div></div>'+
+    '<div class="card"><div class="card-title"><span>设备状态</span></div>'+eqH+'</div>'+
+    '<div class="section-title">客户管理</div><div class="card">'+custH+'</div>'+
+    '<div class="section-title">员工管理</div><div class="card">'+empH+'</div>';
+}
+function switchKanbanTab(k){currentKanbanTab=k;switchTab('business');}
+let bizFCInst;
+function renderBusinessCharts(){
+  const ctx=document.getElementById('bizFinanceChart');if(!ctx)return;
+  if(bizFCInst)bizFCInst.destroy();
+  bizFCInst=new Chart(ctx,{type:'line',data:{labels:DB.finance.map(f=>f.month),datasets:[{label:'收入',data:DB.finance.map(f=>f.income),borderColor:'#16a34a',backgroundColor:'rgba(22,163,74,.1)',fill:true,tension:.3},{label:'支出',data:DB.finance.map(f=>f.expense),borderColor:'#dc2626',backgroundColor:'rgba(220,38,38,.1)',fill:true,tension:.3},{label:'利润',data:DB.finance.map(f=>f.income-f.expense),borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.1)',fill:true,tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}},scales:{y:{ticks:{font:{size:9}}},x:{ticks:{font:{size:9}}}}}});
+}
+function advProject(id){const p=DB.projects.find(x=>x.id===id);if(!p)return;const order=['quote','produce','qc','done'];const i=order.indexOf(p.status);if(i<order.length-1){p.status=order[i+1];p.progress=p.status==='done'?100:p.progress+25;saveData();showToast('已推进');switchTab('business');}}
+function delProject(id){DB.projects=DB.projects.filter(p=>p.id!==id);saveData();switchTab('business');showToast('已删除');}
+function editProject(id){const p=DB.projects.find(x=>x.id===id);if(!p)return;openSheet('project');document.getElementById('modalTitle').textContent='编辑项目';setTimeout(()=>{if(document.getElementById('s_name')){document.getElementById('s_name').value=p.name;document.getElementById('s_client').value=p.client;document.getElementById('s_budget').value=p.budget;document.getElementById('s_status').value=p.status;document.getElementById('s_deadline').value=p.deadline;document.getElementById('s_notes').value=p.notes||'';}},50);document.getElementById('modalSave').onclick=()=>{p.name=v('s_name');p.client=v('s_client');p.budget=+v('s_budget')||0;p.status=v('s_status');p.deadline=v('s_deadline');p.notes=v('s_notes');if(!p.name)return showToast('请输入项目名称');saveData();closeModal();switchTab('business');showToast('已更新');};}
+function delCustomer(id){DB.customers=DB.customers.filter(c=>c.id!==id);saveData();switchTab('business');showToast('已删除');}
+function editCustomer(id){const c=DB.customers.find(x=>x.id===id);if(!c)return;openSheet('customer');document.getElementById('modalTitle').textContent='编辑客户';setTimeout(()=>{if(document.getElementById('s_cname')){document.getElementById('s_cname').value=c.name;document.getElementById('s_ccompany').value=c.company;document.getElementById('s_cphone').value=c.phone;document.getElementById('s_corders').value=c.orders;document.getElementById('s_camount').value=c.amount;document.getElementById('s_ccontact').value=c.contact||'';document.getElementById('s_cpaid').value=c.paid||0;document.getElementById('s_cunpaid').value=c.unpaid||0;}},50);document.getElementById('modalSave').onclick=()=>{c.name=v('s_cname');c.company=v('s_ccompany');c.phone=v('s_cphone');c.orders=+v('s_corders')||0;c.amount=+v('s_camount')||0;c.contact=v('s_ccontact');c.paid=+v('s_cpaid')||0;c.unpaid=+v('s_cunpaid')||0;if(!c.name)return showToast('请输入客户名');saveData();closeModal();switchTab('business');showToast('已更新');};}
+function delEmployee(id){DB.employees=DB.employees.filter(e=>e.id!==id);saveData();switchTab('business');showToast('已删除');}
+function editEmployee(id){const e=DB.employees.find(x=>x.id===id);if(!e)return;openSheet('employee');document.getElementById('modalTitle').textContent='编辑员工';setTimeout(()=>{if(document.getElementById('s_ename')){document.getElementById('s_ename').value=e.name;document.getElementById('s_erole').value=e.role;document.getElementById('s_ephone').value=e.phone;document.getElementById('s_estatus').value=e.status;document.getElementById('s_etask').value=e.task;}},50);document.getElementById('modalSave').onclick=()=>{e.name=v('s_ename');e.role=v('s_erole');e.phone=v('s_ephone');e.status=v('s_estatus');e.task=v('s_etask');if(!e.name)return showToast('请输入姓名');saveData();closeModal();switchTab('business');showToast('已更新');};}
+function delEquipment(id){DB.equipment=DB.equipment.filter(e=>e.id!==id);saveData();switchTab('business');showToast('已删除');}
+function editEquipment(id){const e=DB.equipment.find(x=>x.id===id);if(!e)return;openSheet('equipment');document.getElementById('modalTitle').textContent='编辑设备';setTimeout(()=>{if(document.getElementById('s_eqname')){document.getElementById('s_eqname').value=e.name;document.getElementById('s_eqmodel').value=e.model;document.getElementById('s_eqstatus').value=e.status;document.getElementById('s_eqlast').value=e.last;document.getElementById('s_eqnext').value=e.next;}},50);document.getElementById('modalSave').onclick=()=>{e.name=v('s_eqname');e.model=v('s_eqmodel');e.status=v('s_eqstatus');e.last=v('s_eqlast');e.next=v('s_eqnext');if(!e.name)return showToast('请输入设备名');saveData();closeModal();switchTab('business');showToast('已更新');};}
+
+// ============ Media ============
+const PLATFORM_LINKS={抖音:{url:'https://www.douyin.com/search/CNC%E5%8A%A0%E5%B7%A5',icon:'🎵',kw:'CNC加工'},快手:{url:'https://www.kuaishou.com/search/video?searchKey=CNC%E5%8A%A0%E5%B7%A5',icon:'⚡',kw:'CNC加工'},小红书:{url:'https://www.xiaohongshu.com/search_result?keyword=%E6%9C%BA%E6%A2%B0%E5%8A%A0%E5%B7%A5',icon:'📕',kw:'机械加工'},B站:{url:'https://search.bilibili.com/all?keyword=CNC%E5%8A%A0%E5%B7%A5&order=click',icon:'📺',kw:'CNC加工'},微信视频号:{url:'https://channels.weixin.qq.com/search?query=%E6%9C%BA%E6%A2%B0%E5%88%B6%E9%80%A0',icon:'💬',kw:'机械制造'}};
+function renderMedia() {
+  const emoji={抖音:'🎵',快手:'⚡',小红书:'📕',B站:'📺','微信视频号':'💬'};
+  const acctH=DB.accounts.map(a=>'<div class="account-item"><div class="account-emoji">'+(emoji[a.plt]||'📱')+'</div><div class="account-info"><h5>'+a.name+'</h5><p>'+a.plt+'</p></div><div><div class="account-num">'+a.fans.toLocaleString()+'</div><div class="account-sub">粉丝</div></div><div class="editable-item-actions" style="margin-left:8px;"><button class="btn btn-sm btn-outline" onclick="editAccount('+a.id+');event.stopPropagation();" style="font-size:10px;padding:3px 6px;">编辑</button><button class="btn btn-sm btn-outline" onclick="delAccount('+a.id+');event.stopPropagation();" style="font-size:10px;padding:3px 6px;color:#dc2626;">删</button></div></div>').join('');
+  const linkH=Object.entries(PLATFORM_LINKS).map(([k,v])=>'<a class="platform-link" href="'+v.url+'" target="_blank" rel="noopener"><span style="font-size:20px;">'+v.icon+'</span><div><div style="font-size:12px;font-weight:600;">'+k+' · '+v.kw+'</div><div style="font-size:10px;color:var(--text-light);">搜索热门内容</div></div></a>').join('');
+  const videoH=DB.hotVideos.length?DB.hotVideos.map(h=>
+    '<div class="video-card"><div class="video-card-title">'+h.title+'</div><div class="video-card-meta"><span>📱 '+h.plt+'</span><span>👤 '+h.author+'</span><span>▶️ '+h.views+'</span><span>❤️ '+h.likes+'</span></div>'+(h.note?'<div class="video-card-note">💡 '+h.note+'</div>':'')+'<div style="margin-top:6px;display:flex;gap:4px;">'+(h.link?'<a href="'+h.link+'" target="_blank" rel="noopener" class="btn btn-sm btn-outline" style="font-size:10px;padding:3px 8px;">打开</a>':'')+'<button class="btn btn-sm btn-outline" onclick="editHotVideo('+h.id+')" style="font-size:10px;padding:3px 8px;">编辑</button><button class="btn btn-sm btn-outline" onclick="delHotVideo('+h.id+')" style="font-size:10px;padding:3px 8px;color:#dc2626;">删除</button></div></div>'
+  ).join(''):'<div class="empty"><p>暂无热门视频记录</p></div>';
+  const adviceH=DB.mediaAdvice.length?DB.mediaAdvice.map(a=>
+    '<div class="advice-card"><div class="advice-card-title">'+a.title+'</div><div class="advice-card-cat">📂 '+a.cat+' · '+a.date+'</div><div class="advice-card-content">'+a.content+'</div><div style="margin-top:6px;display:flex;gap:4px;"><button class="btn btn-sm btn-outline" onclick="editAdvice('+a.id+')" style="font-size:10px;padding:3px 8px;">编辑</button><button class="btn btn-sm btn-outline" onclick="delAdvice('+a.id+')" style="font-size:10px;padding:3px 8px;color:#dc2626;">删除</button></div></div>'
+  ).join(''):'<div class="empty"><p>暂无运营建议</p></div>';
+  const remixH=DB.remixIdeas.length?DB.remixIdeas.map(r=>
+    '<div class="remix-card"><div class="remix-card-title">🎬 '+r.original+'</div><div class="remix-card-meta">来源: '+r.source+' · 平台: '+r.plt+' · '+r.date+'</div><div class="remix-card-idea">💡 '+r.idea+'</div><div style="margin-top:6px;display:flex;gap:4px;align-items:center;"><span class="badge '+(r.status==='待执行'?'badge-amber':r.status==='制作中'?'badge-blue':'badge-green')+'">'+r.status+'</span><button class="btn btn-sm btn-outline" onclick="cycleRemixStatus('+r.id+')" style="font-size:10px;padding:3px 8px;">切换状态</button><button class="btn btn-sm btn-outline" onclick="editRemix('+r.id+')" style="font-size:10px;padding:3px 8px;">编辑</button><button class="btn btn-sm btn-outline" onclick="delRemix('+r.id+')" style="font-size:10px;padding:3px 8px;color:#dc2626;">删除</button></div></div>'
+  ).join(''):'<div class="empty"><p>暂无二创灵感</p></div>';
+  const topicH=DB.topics.map(t=>'<tr><td>'+t.date.slice(5)+'</td><td>'+t.plt+'</td><td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;">'+t.topic+'</td><td>'+t.type+'</td><td><span class="badge '+(t.status==='已发布'?'badge-green':t.status==='待拍摄'?'badge-amber':'badge-blue')+'">'+t.status+'</span></td><td><button class="btn btn-sm btn-outline" onclick="editTopic('+t.id+')" style="font-size:10px;padding:2px 6px;">编</button><button class="btn btn-sm btn-outline" onclick="delTopic('+t.id+')" style="font-size:10px;padding:2px 6px;color:#dc2626;margin-left:2px;">删</button></td></tr>').join('');
+  return '<div class="card"><div class="card-title"><span>账号矩阵</span></div>'+acctH+'</div>'+
+    '<div class="card"><div class="card-title"><span>🔥 热门视频</span></div>'+linkH+videoH+'<div style="margin-top:8px;font-size:11px;color:var(--text-light);text-align:center;">💡 每日8:00自动推送热点，也可手动添加优质视频</div></div>'+
+    '<div class="card"><div class="card-title"><span>💡 运营建议</span></div>'+adviceH+'</div>'+
+    '<div class="card"><div class="card-title"><span>🎬 二创灵感</span></div>'+remixH+'</div>'+
+    '<div class="card"><div class="card-title"><span>选题管理</span></div><div class="tbl-wrap"><table><thead><tr><th>日期</th><th>平台</th><th>选题</th><th>类型</th><th>状态</th><th>操作</th></tr></thead><tbody>'+(topicH||'<tr><td colspan="6" style="text-align:center;color:var(--text-light);">暂无选题</td></tr>')+'</tbody></table></div></div>'+
+    '<div class="card"><div class="card-title"><span>数据趋势</span></div><div class="chart-wrap"><canvas id="mediaChart"></canvas></div></div>';
+}
+let medCInst;
+function renderMediaCharts(){
+  const ctx=document.getElementById('mediaChart');if(!ctx)return;if(medCInst)medCInst.destroy();
+  const plats=[...new Set(DB.mdata.map(d=>d.plt))];const dates=[...new Set(DB.mdata.map(d=>d.date))].sort();
+  const colors=['#dc2626','#f59e0b','#2563eb','#16a34a'];
+  medCInst=new Chart(ctx,{type:'bar',data:{labels:dates,datasets:plats.map((p,i)=>({label:p,data:dates.map(d=>{const x=DB.mdata.find(y=>y.date===d&&y.plt===p);return x?x.views:0}),backgroundColor:colors[i%4],borderRadius:4}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}},scales:{y:{ticks:{font:{size:9}}},x:{ticks:{font:{size:9}}}}}});
+}
+function delHotVideo(id){DB.hotVideos=DB.hotVideos.filter(v=>v.id!==id);saveData();switchTab('media');showToast('已删除');}
+function editHotVideo(id){const h=DB.hotVideos.find(x=>x.id===id);if(!h)return;openSheet('hotVideo');document.getElementById('modalTitle').textContent='编辑热门视频';setTimeout(()=>{if(document.getElementById('s_hvplt')){document.getElementById('s_hvplt').value=h.plt;document.getElementById('s_hvtitle').value=h.title;document.getElementById('s_hvauthor').value=h.author;document.getElementById('s_hvviews').value=h.views;document.getElementById('s_hvlikes').value=h.likes;document.getElementById('s_hvlink').value=h.link||'';document.getElementById('s_hvnote').value=h.note||'';}},50);document.getElementById('modalSave').onclick=()=>{h.plt=v('s_hvplt');h.title=v('s_hvtitle');h.author=v('s_hvauthor');h.views=v('s_hvviews');h.likes=v('s_hvlikes');h.link=v('s_hvlink');h.note=v('s_hvnote');if(!h.title)return showToast('请输入标题');saveData();closeModal();switchTab('media');showToast('已更新');};}
+function delAdvice(id){DB.mediaAdvice=DB.mediaAdvice.filter(a=>a.id!==id);saveData();switchTab('media');showToast('已删除');}
+function editAdvice(id){const a=DB.mediaAdvice.find(x=>x.id===id);if(!a)return;openSheet('advice');document.getElementById('modalTitle').textContent='编辑运营建议';setTimeout(()=>{if(document.getElementById('s_adtitle')){document.getElementById('s_adtitle').value=a.title;document.getElementById('s_adcat').value=a.cat;document.getElementById('s_adcontent').value=a.content;}},50);document.getElementById('modalSave').onclick=()=>{a.title=v('s_adtitle');a.cat=v('s_adcat');a.content=v('s_adcontent');if(!a.title)return showToast('请输入标题');saveData();closeModal();switchTab('media');showToast('已更新');};}
+function delRemix(id){DB.remixIdeas=DB.remixIdeas.filter(r=>r.id!==id);saveData();switchTab('media');showToast('已删除');}
+function editRemix(id){const r=DB.remixIdeas.find(x=>x.id===id);if(!r)return;openSheet('remix');document.getElementById('modalTitle').textContent='编辑二创灵感';setTimeout(()=>{if(document.getElementById('s_rxsource')){document.getElementById('s_rxsource').value=r.source;document.getElementById('s_rxoriginal').value=r.original;document.getElementById('s_rxidea').value=r.idea;document.getElementById('s_rxplt').value=r.plt;document.getElementById('s_rxstatus').value=r.status;}},50);document.getElementById('modalSave').onclick=()=>{r.source=v('s_rxsource');r.original=v('s_rxoriginal');r.idea=v('s_rxidea');r.plt=v('s_rxplt');r.status=v('s_rxstatus');if(!r.original)return showToast('请输入原内容');saveData();closeModal();switchTab('media');showToast('已更新');};}
+function cycleRemixStatus(id){const r=DB.remixIdeas.find(x=>x.id===id);if(!r)return;const sts=['待执行','制作中','已发布'];const i=sts.indexOf(r.status);r.status=sts[(i+1)%3];saveData();switchTab('media');showToast('状态: '+r.status);}
+function delAccount(id){DB.accounts=DB.accounts.filter(a=>a.id!==id);saveData();switchTab('media');showToast('已删除');}
+function editAccount(id){const a=DB.accounts.find(x=>x.id===id);if(!a)return;openSheet('account');document.getElementById('modalTitle').textContent='编辑账号';setTimeout(()=>{if(document.getElementById('s_name')){document.getElementById('s_plt').value=a.plt;document.getElementById('s_name').value=a.name;document.getElementById('s_fans').value=a.fans;document.getElementById('s_status').value=a.status||'活跃';}},50);document.getElementById('modalSave').onclick=()=>{a.plt=v('s_plt');a.name=v('s_name');a.fans=+v('s_fans')||0;a.status=v('s_status');if(!a.name)return showToast('请输入账号名');saveData();closeModal();switchTab('media');showToast('已更新');};}
+function delTopic(id){DB.topics=DB.topics.filter(t=>t.id!==id);saveData();switchTab('media');showToast('已删除');}
+function editTopic(id){const t=DB.topics.find(x=>x.id===id);if(!t)return;openSheet('topic');document.getElementById('modalTitle').textContent='编辑选题';setTimeout(()=>{if(document.getElementById('s_tplt')){document.getElementById('s_tplt').value=t.plt;document.getElementById('s_ttopic').value=t.topic;document.getElementById('s_ttype').value=t.type;document.getElementById('s_tstatus').value=t.status;document.getElementById('s_tdate').value=t.date;}},50);document.getElementById('modalSave').onclick=()=>{t.plt=v('s_tplt');t.topic=v('s_ttopic');t.type=v('s_ttype');t.status=v('s_tstatus');t.date=v('s_tdate');if(!t.topic)return showToast('请输入选题');saveData();closeModal();switchTab('media');showToast('已更新');};}
+
+// ============ Knowledge ============
+function renderKnowledge() {
+  const cats=Object.entries(DB.kbData);
+  const catCards=cats.map(([k,kb])=>{
+    const itemCount=kb.sections.reduce((s,sec)=>s+sec.items.length,0);
+    return '<div class="kb-card" style="margin-bottom:12px;" onclick="openSubPage(\'kb\',\''+k+'\')"><div class="kb-icon">'+kb.icon+'</div><div class="kb-content"><h4>'+kb.title+'</h4><p>'+kb.desc+'</p><p style="margin-top:4px;font-size:10px;color:var(--primary);">'+kb.sections.length+'个分类 · '+itemCount+'条内容</p></div><div class="kb-arrow">›</div></div>';
+  }).join('');
+  // Search bar
+  var hasAPIKey = localStorage.getItem('scx_ds_key');
+  return '<div class="kb-search-wrap"><span class="kb-search-icon">🔍</span><input class="kb-search-input" id="kbSearchInput" placeholder="搜索知识库内容..." oninput="searchKB(this.value)" onkeydown="if(event.key===\'Enter\')searchKB(this.value)"></div>'+
+    '<div class="kb-search-tabs"><div class="kb-search-tab active" onclick="switchKBSearchTab(\'local\',this)">📂 本地搜索</div><div class="kb-search-tab" onclick="switchKBSearchTab(\'ai\',this)">🤖 DeepSeek检索</div><div style="display:flex;align-items:center;"><button class="btn btn-sm btn-outline" onclick="configureDeepSeekKey()" style="font-size:10px;padding:4px 8px;">'+(hasAPIKey?'🔑 已配置':'⚙️ 配置Key')+'</button></div></div>'+
+    '<div class="kb-search-results" id="kbSearchResults"><div class="kb-search-hint">💡 输入关键词搜索知识库，或切换到 DeepSeek 进行全网AI检索</div></div>'+
+    catCards+
+    '<div class="kb-add-btn" onclick="openSheet(\'kbCat\')">+ 新增知识库分类</div>';
+}
+let kbSearchMode = 'local';
+function renderKBDetail(cat) {
+  const kb=DB.kbData[cat];if(!kb)return'<div class="empty"><p>未找到内容</p></div>';
+  currentKBCat=cat;
+  return kb.sections.map((sec,si)=>
+    '<div class="card"><div class="kb-section-header"><div class="card-title" style="color:var(--primary);margin-bottom:0;">'+sec.h+'</div><div style="display:flex;gap:4px;"><button class="btn btn-sm btn-outline" onclick="editKBSection(\''+cat+'\','+si+')" style="font-size:10px;padding:3px 6px;">改名</button><button class="btn btn-sm btn-outline" onclick="delKBSection(\''+cat+'\','+si+')" style="font-size:10px;padding:3px 6px;color:#dc2626;">删分类</button></div></div><div style="font-size:13px;line-height:1.8;">'+
+    sec.items.map((item,ii)=>
+      '<div class="kb-item-row"><div class="kb-item-text">'+item+'</div><div class="kb-item-actions"><button class="btn btn-sm btn-outline" onclick="editKBItem(\''+cat+'\','+si+','+ii+')" style="font-size:10px;padding:3px 6px;">编辑</button><button class="btn btn-sm btn-outline" onclick="delKBItem(\''+cat+'\','+si+','+ii+')" style="font-size:10px;padding:3px 6px;color:#dc2626;">删</button></div></div>'
+    ).join('')+'</div><button class="kb-add-btn" onclick="addKBItem(\''+cat+'\','+si+')">+ 添加条目</button></div>'
+  ).join('')+'<button class="kb-add-btn" onclick="addKBSection(\''+cat+'\')">+ 新增分类</button>';
+}
+function addKBItem(cat,si){openSheet('kbItem',cat+':'+si);}
+function editKBItem(cat,si,ii){openSheet('kbItem',cat+':'+si+':'+ii);}
+function delKBItem(cat,si,ii){DB.kbData[cat].sections[si].items.splice(ii,1);saveData();openSubPage('kb',cat);showToast('已删除');}
+function addKBSection(cat){openSheet('kbSection',cat);}
+function editKBSection(cat,si){openSheet('kbSection',cat+':'+si);}
+function delKBSection(cat,si){if(!confirm('确认删除整个分类？'))return;DB.kbData[cat].sections.splice(si,1);saveData();openSubPage('kb',cat);showToast('已删除');}
+
+// ============ Knowledge Search ============
+function switchKBSearchTab(mode, el) {
+  kbSearchMode = mode;
+  document.querySelectorAll('.kb-search-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  var q = document.getElementById('kbSearchInput');
+  if (q && q.value) searchKB(q.value);
+  else if (mode === 'ai') { document.getElementById('kbSearchResults').innerHTML = '<div class="kb-search-hint">🤖 输入关键词后，AI将自动搜索全网相关知识并返回结果<br><span style="font-size:10px;color:var(--text-light);">需要先配置 DeepSeek API Key</span></div>'; }
+  else { document.getElementById('kbSearchResults').innerHTML = '<div class="kb-search-hint">💡 输入关键词搜索本地知识库内容</div>'; }
+}
+
+function searchKB(query) {
+  if (!query || query.trim().length < 1) {
+    document.getElementById('kbSearchResults').innerHTML = '<div class="kb-search-hint">💡 输入关键词搜索知识库，或切换到 DeepSeek 进行全网AI检索</div>';
+    return;
+  }
+  if (kbSearchMode === 'ai') {
+    debounceAISearch(query);
+    return;
+  }
+  // Local search
+  var q = query.toLowerCase().trim();
+  var results = [];
+  Object.entries(DB.kbData).forEach(function(_ref) {
+    var cat = _ref[0], kb = _ref[1];
+    kb.sections.forEach(function(sec) {
+      sec.items.forEach(function(item) {
+        if (item.toLowerCase().indexOf(q) !== -1) {
+          results.push({ cat: cat, catTitle: kb.title, catIcon: kb.icon, section: sec.h, item: item });
+        }
+      });
+    });
+  });
+  // Also search section headers
+  Object.entries(DB.kbData).forEach(function(_ref2) {
+    var cat = _ref2[0], kb = _ref2[1];
+    kb.sections.forEach(function(sec) {
+      if (sec.h.toLowerCase().indexOf(q) !== -1) {
+        sec.items.forEach(function(item) {
+          if (!results.some(function(r) { return r.item === item; })) {
+            results.push({ cat: cat, catTitle: kb.title, catIcon: kb.icon, section: sec.h, item: item });
+          }
+        });
+      }
+    });
+  });
+
+  if (results.length === 0) {
+    document.getElementById('kbSearchResults').innerHTML = '<div class="kb-search-hint">📭 未找到相关内容，试试其他关键词或使用 DeepSeek AI 检索</div>';
+  } else {
+    document.getElementById('kbSearchResults').innerHTML = results.slice(0,20).map(function(r) {
+      var hl = r.item.replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'), '<mark style="background:#fef08a;padding:0 2px;border-radius:2px;">$1</mark>');
+      return '<div class="kb-search-result-item" onclick="openSubPage(\'kb\',\''+r.cat+'\')"><div class="result-cat">'+r.catIcon+' '+r.catTitle+' › '+r.section+'</div><div class="result-text">'+hl+'</div></div>';
+    }).join('') + '<div style="font-size:11px;color:var(--text-light);text-align:center;padding:4px;">共找到 '+results.length+' 条结果</div>';
+  }
+}
+
+var aiSearchTimeout = null;
+function debounceAISearch(query) {
+  if (aiSearchTimeout) clearTimeout(aiSearchTimeout);
+  aiSearchTimeout = setTimeout(function() { aiSearchKB(query); }, 600);
+}
+
+function aiSearchKB(query) {
+  var apiKey = localStorage.getItem('scx_ds_key');
+  if (!apiKey) {
+    document.getElementById('kbSearchResults').innerHTML = '<div class="kb-search-hint" style="color:var(--danger);">⚠️ 请先配置 DeepSeek API Key<br><button class="btn btn-sm btn-outline" onclick="configureDeepSeekKey()" style="margin-top:8px;">⚙️ 配置API Key</button></div>';
+    return;
+  }
+  document.getElementById('kbSearchResults').innerHTML = '<div class="kb-search-loading">🤖 DeepSeek 正在检索全网知识...<br><span style="font-size:10px;color:var(--text-light);">请稍候，约需 3-5 秒</span></div>';
+
+  // Build context from local KB for better results
+  var localContext = '';
+  Object.entries(DB.kbData).forEach(function(_ref) {
+    var cat = _ref[0], kb = _ref[1];
+    localContext += '\n【' + kb.title + '】';
+    kb.sections.forEach(function(sec) {
+      localContext += '\n- ' + sec.h + ': ' + sec.items.slice(0,5).join('; ');
+    });
+  });
+
+  var prompt = '你是一个机械制造和CNC加工领域的知识专家。用户的问题关键词是："'+query+'"\n\n以下是用户知识库中已有的部分内容供参考：\n'+localContext.slice(0,2000)+'\n\n请基于你的知识，围绕这个关键词提供：\n1. 核心概念解释（100字以内）\n2. 3-5个相关的关键技术点或实用信息\n3. 1-2条实用的操作建议或注意事项\n\n请用中文回答，每条信息简洁明了，总回复不超过500字。格式：每一条用"• "开头。';
+
+  fetch('https://api.deepseek.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+    body: JSON.stringify({
+      model: 'deepseek-chat',
+      messages: [
+        { role: 'system', content: '你是一个专业的机械制造和CNC加工知识助手。回答简洁、实用、准确。每条信息用•开头，不要使用markdown格式。' },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 800,
+      temperature: 0.3
+    }),
+    signal: AbortSignal.timeout(15000)
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d.choices && d.choices[0]) {
+      var content = d.choices[0].message.content;
+      var lines = content.split('\n').filter(function(l) { return l.trim(); });
+      var html = '<div style="margin-bottom:8px;font-size:11px;color:var(--purple);font-weight:600;">🤖 DeepSeek AI 检索结果</div>';
+      lines.forEach(function(l) {
+        html += '<div class="kb-search-result-item ai-result"><div class="result-text" style="font-size:13px;">'+escapeHtml(l)+'</div></div>';
+      });
+      html += '<div class="kb-search-hint">⚡ 以上内容由DeepSeek AI生成，仅供参考 | <a href="javascript:void(0)" onclick="saveAISearchResult()" style="color:var(--primary);">保存到知识库</a></div>';
+      document.getElementById('kbSearchResults').innerHTML = html;
+    } else {
+      document.getElementById('kbSearchResults').innerHTML = '<div class="kb-search-hint" style="color:var(--danger);">❌ AI返回异常：' + (d.error ? d.error.message : '未知错误') + '</div>';
+    }
+  }).catch(function(e) {
+    document.getElementById('kbSearchResults').innerHTML = '<div class="kb-search-hint" style="color:var(--danger);">AI请求失败：' + e.message + '<br><span style="font-size:10px;">请检查网络和API Key是否正确</span></div>';
+  });
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+var lastAIResult = null;
+function saveAISearchResult() {
+  var results = document.querySelectorAll('#kbSearchResults .result-text');
+  if (!results.length) return;
+  var items = [];
+  results.forEach(function(r) { items.push(r.textContent); });
+  lastAIResult = items;
+  showToast('请选择保存到哪个知识库分类');
+  // Show category selector
+  var cats = Object.keys(DB.kbData);
+  var opts = cats.map(function(c) { return '<option value="'+c+'">'+DB.kbData[c].title+'</option>'; }).join('');
+  document.getElementById('kbSearchResults').innerHTML = '<div class="card"><div class="card-title">选择保存分类</div><select id="kbSaveCat" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);">'+opts+'</select><div style="margin-top:8px;display:flex;gap:6px;"><button class="btn btn-primary btn-sm" style="flex:1;" onclick="confirmSaveAIResult()">保存全部</button><button class="btn btn-outline btn-sm" style="flex:1;" onclick="searchKB(document.getElementById(\'kbSearchInput\').value)">取消</button></div></div>';
+}
+function confirmSaveAIResult() {
+  var cat = document.getElementById('kbSaveCat').value;
+  if (!lastAIResult || !cat || !DB.kbData[cat]) return;
+  var secName = 'AI检索 ' + new Date().toISOString().slice(0,10);
+  var sec = DB.kbData[cat].sections.find(function(s) { return s.h === secName; });
+  if (!sec) { sec = { h: secName, items: [] }; DB.kbData[cat].sections.push(sec); }
+  lastAIResult.forEach(function(item) { sec.items.push(item); });
+  lastAIResult = null;
+  saveData();
+  showToast('已保存到 ' + DB.kbData[cat].title + ' › ' + secName);
+  var q = document.getElementById('kbSearchInput');
+  if (q) searchKB(q.value);
+}
+
+function configureDeepSeekKey() {
+  var currentKey = localStorage.getItem('scx_ds_key') || '';
+  document.getElementById('modalTitle').textContent = '配置 DeepSeek API Key';
+  document.getElementById('modalBody').innerHTML = '<div class="form-group"><label>DeepSeek API Key</label><input id="s_dskey" type="password" placeholder="sk-..." value="'+currentKey+'"></div><div style="font-size:11px;color:var(--text-light);line-height:1.6;margin-top:6px;">📌 获取方式：访问 <a href="https://platform.deepseek.com/api_keys" target="_blank" style="color:var(--primary);">platform.deepseek.com</a> 注册并创建API Key<br>📌 Key 仅保存在浏览器本地，不会上传到任何服务器</div>';
+  document.getElementById('modalOverlay').classList.add('show');
+  document.getElementById('modalSave').onclick = function() {
+    var key = document.getElementById('s_dskey').value.trim();
+    if (key) { localStorage.setItem('scx_ds_key', key); showToast('API Key 已保存'); }
+    else { localStorage.removeItem('scx_ds_key'); showToast('API Key 已清除'); }
+    closeModal();
+    switchTab('knowledge');
+  };
+}
+
+// ============ Personal ============
+function renderPersonal() {
+  const filter=document.getElementById('todoFilter')?.value||'all';
+  let items=DB.todos;
+  if(filter==='pending')items=items.filter(t=>t.status==='pending');
+  else if(filter==='done')items=items.filter(t=>t.status==='done');
+  else if(filter==='high')items=items.filter(t=>t.pri==='high');
+  const todoH=items.length?items.map(t=>
+    '<div class="todo-item '+(t.status==='done'?'done':'')+'"><input type="checkbox" class="todo-checkbox" '+(t.status==='done'?'checked':'')+' onchange="toggleTodo('+t.id+')"><div class="todo-text">'+t.txt+'<div style="font-size:10px;color:var(--text-light);">'+t.cat+' · '+t.due+'</div></div><span class="badge '+(t.pri==='high'?'badge-red':t.pri==='medium'?'badge-amber':'badge-gray')+'">'+(t.pri==='high'?'紧急':t.pri==='medium'?'重要':'一般')+'</span><div style="display:flex;gap:2px;flex-shrink:0;"><button class="btn btn-sm btn-outline" onclick="editTodo('+t.id+')" style="font-size:10px;padding:3px 6px;">编</button><button class="btn btn-sm btn-outline" onclick="delTodo('+t.id+')" style="font-size:10px;padding:3px 6px;color:#dc2626;">删</button></div></div>'
+  ).join(''):'<div class="empty"><p>暂无待办</p></div>';
+  const logH=DB.logs.length?[...DB.logs].reverse().map(l=>
+    '<div style="padding:10px 0;border-bottom:1px solid var(--border);"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:12px;font-weight:600;">'+l.date+'</span><div style="display:flex;gap:4px;align-items:center;"><span class="badge badge-gray">'+l.mood+'</span><button class="btn btn-sm btn-outline" onclick="editLog('+l.id+')" style="font-size:10px;padding:2px 6px;">编</button><button class="btn btn-sm btn-outline" onclick="delLog('+l.id+')" style="font-size:10px;padding:2px 6px;color:#dc2626;">删</button></div></div><p style="font-size:12px;line-height:1.6;">'+l.content+'</p></div>'
+  ).join(''):'<div class="empty"><p>暂无记录</p></div>';
+  const today=new Date();const dow=(today.getDay()+6)%7;const mon=new Date(today);mon.setDate(today.getDate()-dow);
+  const days=['周一','周二','周三','周四','周五','周六','周日'];
+  const weekH=days.map((d,i)=>{
+    const dt=new Date(mon);dt.setDate(mon.getDate()+i);const ds=dt.toISOString().slice(0,10);
+    const dayTodos=DB.todos.filter(t=>t.due===ds);const isToday=ds===new Date().toISOString().slice(0,10);
+    return '<div style="min-width:120px;background:'+(isToday?'var(--primary-light)':'var(--bg)')+';border-radius:8px;padding:8px;"><h4 style="font-size:11px;font-weight:'+(isToday?700:500)+';margin-bottom:6px;display:flex;justify-content:space-between;color:'+(isToday?'var(--primary)':'var(--text)')+';">'+d+'<span style="font-size:9px;color:var(--text-light);">'+(dt.getMonth()+1)+'/'+dt.getDate()+'</span></h4>'+(dayTodos.length?dayTodos.map(t=>'<div style="background:#fff;padding:4px 6px;border-radius:4px;font-size:10px;margin-bottom:4px;border-left:2px solid '+(t.pri==='high'?'#dc2626':t.pri==='medium'?'#f59e0b':'#94a3b8')+';'+(t.status==='done'?'text-decoration:line-through;opacity:.5;':'')+'">'+t.txt+'</div>').join(''):'<div style="text-align:center;padding:6px;font-size:10px;color:var(--text-light);">-</div>')+'</div>';
+  }).join('');
+  return '<div class="card"><div class="card-title"><span>待办事项</span><select id="todoFilter" onchange="switchTab(\'personal\')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:11px;background:var(--card);"><option value="all" '+(filter==='all'?'selected':'')+'>全部</option><option value="pending" '+(filter==='pending'?'selected':'')+'>待处理</option><option value="done" '+(filter==='done'?'selected':'')+'>已完成</option><option value="high" '+(filter==='high'?'selected':'')+'>紧急</option></select></div>'+todoH+'</div>'+
+    '<div class="card"><div class="card-title"><span>工作日志</span></div>'+logH+'</div>'+
+    '<div class="card"><div class="card-title"><span>本周计划</span></div><div style="display:flex;overflow-x:auto;gap:8px;padding-bottom:6px;-webkit-overflow-scrolling:touch;margin:0 -4px;">'+weekH+'</div></div>';
+}
+function toggleTodo(id){const t=DB.todos.find(x=>x.id===id);if(t){t.status=t.status==='done'?'pending':'done';saveData();switchTab('personal');}}
+function delTodo(id){DB.todos=DB.todos.filter(t=>t.id!==id);saveData();switchTab('personal');showToast('已删除');}
+function editTodo(id){const t=DB.todos.find(x=>x.id===id);if(!t)return;openSheet('todo');document.getElementById('modalTitle').textContent='编辑待办';setTimeout(()=>{if(document.getElementById('s_txt')){document.getElementById('s_txt').value=t.txt;document.getElementById('s_pri').value=t.pri;document.getElementById('s_cat').value=t.cat;document.getElementById('s_due').value=t.due;}},50);document.getElementById('modalSave').onclick=()=>{t.txt=v('s_txt');t.pri=v('s_pri');t.cat=v('s_cat');t.due=v('s_due');if(!t.txt)return showToast('请输入内容');saveData();closeModal();switchTab('personal');showToast('已更新');};}
+function delLog(id){DB.logs=DB.logs.filter(l=>l.id!==id);saveData();switchTab('personal');showToast('已删除');}
+function editLog(id){const l=DB.logs.find(x=>x.id===id);if(!l)return;openSheet('log');document.getElementById('modalTitle').textContent='编辑日志';setTimeout(()=>{if(document.getElementById('s_date')){document.getElementById('s_date').value=l.date;document.getElementById('s_mood').value=l.mood;document.getElementById('s_content').value=l.content;}},50);document.getElementById('modalSave').onclick=()=>{l.date=v('s_date');l.mood=v('s_mood');l.content=v('s_content');if(!l.content)return showToast('请输入内容');saveData();closeModal();switchTab('personal');showToast('已更新');};}
+
+// ============ Bottom Sheet Modal ============
+function openSheet(type, param) {
+  const overlay=document.getElementById('modalOverlay');
+  const title=document.getElementById('modalTitle');
+  const body=document.getElementById('modalBody');
+  const saveBtn=document.getElementById('modalSave');
+  const t=new Date().toISOString().slice(0,10);
+  const sheets={
+    project:{
+      title:'新建项目',
+      html:'<div class="form-group"><label>项目名称</label><input id="s_name"></div><div class="form-row"><div class="form-group"><label>客户</label><input id="s_client"></div><div class="form-group"><label>预算</label><input id="s_budget" type="number" value="0"></div></div><div class="form-row"><div class="form-group"><label>状态</label><select id="s_status"><option value="quote">报价中</option><option value="produce">生产中</option><option value="qc">质检中</option><option value="done">已交付</option></select></div><div class="form-group"><label>截止日期</label><input id="s_deadline" type="date"></div></div><div class="form-group"><label>备注</label><textarea id="s_notes" rows="2"></textarea></div>',
+      save:()=>{const p={id:DB.nid.project++,name:v('s_name'),client:v('s_client'),status:v('s_status'),deadline:v('s_deadline'),budget:+v('s_budget')||0,progress:v('s_status')==='done'?100:0,notes:v('s_notes')};if(!p.name)return showToast('请输入项目名称');DB.projects.push(p);saveData();switchTab('business');showToast('项目已添加');}
+    },
+    customer:{
+      title:'添加客户',
+      html:'<div class="form-group"><label>客户姓名</label><input id="s_cname"></div><div class="form-group"><label>公司</label><input id="s_ccompany"></div><div class="form-row"><div class="form-group"><label>电话</label><input id="s_cphone"></div><div class="form-group"><label>订单数</label><input id="s_corders" type="number" value="0"></div></div><div class="form-row"><div class="form-group"><label>累计金额</label><input id="s_camount" type="number" value="0"></div><div class="form-group"><label>最近联系</label><input id="s_ccontact" type="date"></div></div><div class="form-row"><div class="form-group"><label>已付款 ¥</label><input id="s_cpaid" type="number" value="0"></div><div class="form-group"><label>未付款 ¥</label><input id="s_cunpaid" type="number" value="0"></div></div><div style="font-size:11px;color:var(--text-light);">💡 已付+未付 应等于累计金额，方便追踪回款进度</div>',
+      save:()=>{const c={id:DB.nid.customer++,name:v('s_cname'),company:v('s_ccompany'),phone:v('s_cphone'),orders:+v('s_corders')||0,amount:+v('s_camount')||0,contact:v('s_ccontact'),paid:+v('s_cpaid')||0,unpaid:+v('s_cunpaid')||0};if(!c.name)return showToast('请输入客户名');DB.customers.push(c);saveData();switchTab('business');showToast('客户已添加');}
+    },
+    employee:{
+      title:'添加员工',
+      html:'<div class="form-group"><label>姓名</label><input id="s_ename"></div><div class="form-row"><div class="form-group"><label>岗位</label><input id="s_erole"></div><div class="form-group"><label>电话</label><input id="s_ephone"></div></div><div class="form-row"><div class="form-group"><label>状态</label><select id="s_estatus"><option>在岗</option><option>休假</option><option>离职</option></select></div><div class="form-group"><label>当前任务</label><input id="s_etask"></div></div>',
+      save:()=>{const e={id:DB.nid.employee++,name:v('s_ename'),role:v('s_erole'),phone:v('s_ephone'),status:v('s_estatus'),task:v('s_etask')};if(!e.name)return showToast('请输入姓名');DB.employees.push(e);saveData();switchTab('business');showToast('员工已添加');}
+    },
+    equipment:{
+      title:'添加设备',
+      html:'<div class="form-group"><label>设备名称</label><input id="s_eqname"></div><div class="form-row"><div class="form-group"><label>型号</label><input id="s_eqmodel"></div><div class="form-group"><label>状态</label><select id="s_eqstatus"><option>运行中</option><option>维护中</option><option>停机</option></select></div></div><div class="form-row"><div class="form-group"><label>上次维护</label><input id="s_eqlast" type="date"></div><div class="form-group"><label>下次维护</label><input id="s_eqnext" type="date"></div></div>',
+      save:()=>{const e={id:DB.nid.equipment++,name:v('s_eqname'),model:v('s_eqmodel'),status:v('s_eqstatus'),last:v('s_eqlast'),next:v('s_eqnext')};if(!e.name)return showToast('请输入设备名');DB.equipment.push(e);saveData();switchTab('business');showToast('设备已添加');}
+    },
+    transaction:{
+      title:'记一笔流水',
+      html:'<div class="form-row"><div class="form-group"><label>类型</label><select id="s_ttype"><option value="income">收入</option><option value="expense">支出</option></select></div><div class="form-group"><label>日期</label><input id="s_tdate" type="date" value="'+t+'"></div></div><div class="form-row"><div class="form-group"><label>金额</label><input id="s_tamt" type="number" value="0"></div><div class="form-group"><label>来源/用途</label><input id="s_tsource"></div></div><div class="form-row"><div class="form-group"><label>客户(收入时)</label><input id="s_tclient"></div><div class="form-group"><label>备注</label><input id="s_tnote"></div></div>',
+      save:()=>{const tr={id:DB.nid.transaction++,date:v('s_tdate'),type:v('s_ttype'),amount:+v('s_tamt')||0,source:v('s_tsource'),client:v('s_tclient'),note:v('s_tnote')};if(!tr.source)return showToast('请输入来源/用途');DB.transactions.push(tr);saveData();switchTab('business');showToast('流水已记录');}
+    },
+    bulkFinance:{
+      title:'录入历史月度数据',
+      html:'<div style="font-size:12px;color:var(--text-light);margin-bottom:10px;">可一次性录入多个月份的财务数据，已有月份将更新</div><div class="form-group"><label>月份列表（每行一个，格式: 2026-01,收入,支出）</label><textarea id="s_bulkfin" rows="8" placeholder="2026-03,86000,52000\n2026-04,92000,58000\n2026-05,105000,61000\n格式：月份,收入金额,支出金额"></textarea></div><div style="font-size:11px;color:var(--text-light);">💡 月份格式为 YYYY-MM，金额为纯数字。已有月份的数据会被覆盖更新。</div>',
+      save:()=>{const txt=v('s_bulkfin').trim();if(!txt)return showToast('请输入数据');const lines=txt.split('\n');let n=0;lines.forEach(line=>{const parts=line.split(',');if(parts.length>=3){const month=parts[0].trim();const income=+parts[1]||0;const expense=+parts[2]||0;if(month.match(/^\d{4}-\d{2}$/)){const exist=DB.finance.find(f=>f.month===month);if(exist){exist.income=income;exist.expense=expense;}else{DB.finance.push({id:DB.nid.finance++,month:month,income:income,expense:expense});}n++;}}});saveData();openSubPage('finance');showToast('已录入 '+n+' 条月度数据');}
+    },
+    editFinanceMonth:{
+      title:'编辑月度数据',
+      html:'<div class="form-row"><div class="form-group"><label>总收入</label><input id="s_fn_income" type="number"></div><div class="form-group"><label>总支出</label><input id="s_fn_expense" type="number"></div></div><div class="form-group"><label>收入构成（每行：来源,金额）</label><textarea id="s_fn_incbreak" rows="4" placeholder="CNC加工,35000\n注塑模具,40000\n铜电极,22000"></textarea></div><div class="form-group"><label>支出构成（每行：项目,金额）</label><textarea id="s_fn_expbreak" rows="4" placeholder="材料采购,12000\n人工工资,18000\n设备维护,8500"></textarea></div><div style="font-size:11px;color:var(--text-light);">💡 编辑后将自动计算总计，也可手动修改总收入/总支出</div>',
+      save:()=>{}
+    },
+    bulkTransaction:{
+      title:'批量导入流水',
+      html:'<div style="font-size:12px;color:var(--text-light);margin-bottom:10px;">每行一条流水记录，格式: 日期,类型,金额,来源/用途,客户(可选),备注(可选)</div><div class="form-group"><label>流水数据</label><textarea id="s_bulktx" rows="8" placeholder="2026-03-15,收入,35000,CNC加工,张总,铝合金外壳\n2026-03-20,支出,8000,材料费,,6061铝板采购\n格式：日期,类型(收入/支出),金额,来源/用途,客户,备注"></textarea></div><div style="font-size:11px;color:var(--text-light);">💡 类型填"收入"或"支出"，金额为纯数字，客户和备注可选（留空用逗号占位）</div>',
+      save:()=>{const txt=v('s_bulktx').trim();if(!txt)return showToast('请输入数据');const lines=txt.split('\n');let n=0;lines.forEach(line=>{const parts=line.split(',');if(parts.length>=4){const date=parts[0].trim();const type=parts[1].trim()==='收入'?'income':'expense';const amount=+parts[2]||0;const source=parts[3].trim();const client=(parts[4]||'').trim();const note=(parts[5]||'').trim();if(date&&source&&amount>0){DB.transactions.push({id:DB.nid.transaction++,date:date,type:type,amount:amount,source:source,client:client,note:note});n++;}}});saveData();openSubPage('finance');showToast('已导入 '+n+' 条流水');}
+    },
+    account:{
+      title:'添加账号',
+      html:'<div class="form-row"><div class="form-group"><label>平台</label><select id="s_plt"><option>抖音</option><option>快手</option><option>小红书</option><option>B站</option><option>微信视频号</option></select></div><div class="form-group"><label>账号名</label><input id="s_name"></div></div><div class="form-row"><div class="form-group"><label>粉丝数</label><input id="s_fans" type="number" value="0"></div><div class="form-group"><label>状态</label><select id="s_status"><option>活跃</option><option>暂停</option></select></div></div>',
+      save:()=>{const a={id:DB.nid.account++,plt:v('s_plt'),name:v('s_name'),fans:+v('s_fans')||0,status:v('s_status'),views:0,likes:0,cmt:0};if(!a.name)return showToast('请输入账号名');DB.accounts.push(a);saveData();switchTab('media');showToast('账号已添加');}
+    },
+    hotVideo:{
+      title:'添加热门视频',
+      html:'<div class="form-row"><div class="form-group"><label>平台</label><select id="s_hvplt"><option>抖音</option><option>快手</option><option>小红书</option><option>B站</option><option>微信视频号</option></select></div><div class="form-group"><label>作者</label><input id="s_hvauthor"></div></div><div class="form-group"><label>视频标题</label><input id="s_hvtitle"></div><div class="form-row"><div class="form-group"><label>播放量</label><input id="s_hvviews" placeholder="如 128万"></div><div class="form-group"><label>点赞量</label><input id="s_hvlikes" placeholder="如 5.2万"></div></div><div class="form-group"><label>视频链接(必填，粘贴完整链接)</label><input id="s_hvlink" placeholder="粘贴视频链接 https://..."></div><div class="form-group"><label>二创建议/灵感</label><textarea id="s_hvnote" rows="3" placeholder="这个视频哪里好？我们可以怎么借鉴？"></textarea></div>',
+      save:()=>{const h={id:DB.nid.hotVideo++,plt:v('s_hvplt'),title:v('s_hvtitle'),author:v('s_hvauthor'),views:v('s_hvviews'),likes:v('s_hvlikes'),link:v('s_hvlink'),note:v('s_hvnote'),date:t};if(!h.title)return showToast('请输入标题');DB.hotVideos.push(h);saveData();switchTab('media');showToast('已添加');}
+    },
+    advice:{
+      title:'添加运营建议',
+      html:'<div class="form-row"><div class="form-group"><label>标题</label><input id="s_adtitle"></div><div class="form-group"><label>分类</label><select id="s_adcat"><option>发布策略</option><option>平台策略</option><option>内容方向</option><option>涨粉技巧</option><option>变现思路</option><option>其他</option></select></div></div><div class="form-group"><label>建议内容</label><textarea id="s_adcontent" rows="5" placeholder="详细描述你的运营建议..."></textarea></div>',
+      save:()=>{const a={id:DB.nid.advice++,date:t,title:v('s_adtitle'),cat:v('s_adcat'),content:v('s_adcontent')};if(!a.title)return showToast('请输入标题');DB.mediaAdvice.push(a);saveData();switchTab('media');showToast('已添加');}
+    },
+    remix:{
+      title:'添加二创灵感',
+      html:'<div class="form-group"><label>原内容来源</label><input id="s_rxsource" placeholder="如 抖音@机械大神"></div><div class="form-group"><label>原内容标题</label><input id="s_rxoriginal"></div><div class="form-row"><div class="form-group"><label>发布平台</label><select id="s_rxplt"><option>抖音</option><option>快手</option><option>小红书</option><option>B站</option><option>微信视频号</option></select></div><div class="form-group"><label>状态</label><select id="s_rxstatus"><option>待执行</option><option>制作中</option><option>已发布</option></select></div></div><div class="form-group"><label>二创思路</label><textarea id="s_rxidea" rows="4" placeholder="我们怎么改编？什么角度？"></textarea></div>',
+      save:()=>{const r={id:DB.nid.remix++,date:t,source:v('s_rxsource'),original:v('s_rxoriginal'),idea:v('s_rxidea'),plt:v('s_rxplt'),status:v('s_rxstatus')};if(!r.original)return showToast('请输入原内容');DB.remixIdeas.push(r);saveData();switchTab('media');showToast('已添加');}
+    },
+    topic:{
+      title:'添加选题',
+      html:'<div class="form-row"><div class="form-group"><label>平台</label><select id="s_tplt"><option>抖音</option><option>快手</option><option>小红书</option><option>B站</option></select></div><div class="form-group"><label>日期</label><input id="s_tdate" type="date" value="'+t+'"></div></div><div class="form-group"><label>选题</label><input id="s_ttopic"></div><div class="form-row"><div class="form-group"><label>类型</label><select id="s_ttype"><option>实操展示</option><option>知识分享</option><option>科普对比</option><option>日常vlog</option><option>产品展示</option></select></div><div class="form-group"><label>状态</label><select id="s_tstatus"><option>选题中</option><option>待拍摄</option><option>已发布</option></select></div></div>',
+      save:()=>{const tp={id:DB.nid.topic++,date:v('s_tdate'),plt:v('s_tplt'),topic:v('s_ttopic'),type:v('s_ttype'),status:v('s_tstatus')};if(!tp.topic)return showToast('请输入选题');DB.topics.push(tp);saveData();switchTab('media');showToast('选题已添加');}
+    },
+    mediaData:{
+      title:'记录数据',
+      html:'<div class="form-row"><div class="form-group"><label>平台</label><select id="s_plt">'+DB.accounts.map(a=>'<option>'+a.plt+'</option>').join('')+'</select></div><div class="form-group"><label>日期</label><input id="s_date" type="date" value="'+t+'"></div></div><div class="form-row"><div class="form-group"><label>播放</label><input id="s_views" type="number" value="0"></div><div class="form-group"><label>点赞</label><input id="s_likes" type="number" value="0"></div></div><div class="form-row"><div class="form-group"><label>评论</label><input id="s_cmt" type="number" value="0"></div><div class="form-group"><label>分享</label><input id="s_share" type="number" value="0"></div></div><div class="form-group"><label>新增粉丝</label><input id="s_newf" type="number" value="0"></div>',
+      save:()=>{DB.mdata.push({id:DB.nid.mdata++,date:v('s_date'),plt:v('s_plt'),views:+v('s_views')||0,likes:+v('s_likes')||0,cmt:+v('s_cmt')||0,share:+v('s_share')||0,newFans:+v('s_newf')||0});saveData();switchTab('media');showToast('数据已记录');}
+    },
+    log:{
+      title:'写日志',
+      html:'<div class="form-row"><div class="form-group"><label>日期</label><input id="s_date" type="date" value="'+t+'"></div><div class="form-group"><label>状态</label><select id="s_mood"><option>正常</option><option>顺利</option><option>忙碌</option><option>困难</option></select></div></div><div class="form-group"><label>内容</label><textarea id="s_content" rows="5"></textarea></div>',
+      save:()=>{if(!v('s_content'))return showToast('请输入内容');DB.logs.push({id:DB.nid.log++,date:v('s_date'),content:v('s_content'),mood:v('s_mood')});saveData();switchTab('personal');showToast('日志已保存');}
+    },
+    todo:{
+      title:'新建待办',
+      html:'<div class="form-group"><label>待办内容</label><input id="s_txt"></div><div class="form-row"><div class="form-group"><label>优先级</label><select id="s_pri"><option value="high">紧急</option><option value="medium" selected>重要</option><option value="low">一般</option></select></div><div class="form-group"><label>分类</label><select id="s_cat"><option>经营</option><option>财务</option><option>自媒体</option><option>设备</option><option>个人</option></select></div></div><div class="form-group"><label>截止日期</label><input id="s_due" type="date" value="'+t+'"></div>',
+      save:()=>{const td={id:DB.nid.todo++,txt:v('s_txt'),pri:v('s_pri'),status:'pending',due:v('s_due'),cat:v('s_cat')};if(!td.txt)return showToast('请输入内容');DB.todos.push(td);saveData();switchTab('personal');showToast('待办已添加');}
+    },
+    kbItem:{
+      title:'添加知识条目',
+      html:renderKBItemForm(param),
+      save:()=>saveKBItem(param)
+    },
+    kbSection:{
+      title:'新增分类',
+      html:'<div class="form-group"><label>分类名称</label><input id="s_kbsecname"></div>',
+      save:()=>{const name=v('s_kbsecname');if(!name)return showToast('请输入分类名');if(param&&param.indexOf(':')===-1){DB.kbData[param].sections.push({h:name,items:[]});saveData();openSubPage('kb',param);showToast('已添加');}else{const parts=param.split(':');const cat=parts[0];const si=+parts[1];DB.kbData[cat].sections[si].h=name;saveData();openSubPage('kb',cat);showToast('已更新');}}
+    },
+    kbCat:{
+      title:'新增知识库分类',
+      html:'<div class="form-group"><label>分类标识(英文)</label><input id="s_kbkey" placeholder="如 mold"></div><div class="form-group"><label>分类名称</label><input id="s_kbtitle"></div><div class="form-row"><div class="form-group"><label>图标</label><input id="s_kbicon" placeholder="🔧" value="📚"></div><div class="form-group"><label>描述</label><input id="s_kbdesc"></div></div>',
+      save:()=>{const key=v('s_kbkey');const title=v('s_kbtitle');if(!key||!title)return showToast('请填写标识和名称');if(DB.kbData[key])return showToast('该标识已存在');DB.kbData[key]={title:title,icon:v('s_kbicon')||'📚',desc:v('s_kbdesc')||'',sections:[]};saveData();switchTab('knowledge');showToast('分类已添加');}
+    }
+  };
+  const sheet=sheets[type];
+  if(!sheet)return;
+  title.textContent=sheet.title;
+  body.innerHTML=sheet.html;
+  saveBtn.onclick=()=>{sheet.save();closeModal();};
+  overlay.classList.add('show');
+}
+
+function renderKBItemForm(param) {
+  if(!param||param.indexOf(':')===-1)return '<div class="empty"><p>参数错误</p></div>';
+  const parts=param.split(':');
+  const cat=parts[0];const si=+parts[1];
+  const kb=DB.kbData[cat];if(!kb)return '<div class="empty"><p>未找到分类</p></div>';
+  const isEdit=parts.length===3;
+  if(isEdit){const ii=+parts[2];const item=kb.sections[si].items[ii];return '<div class="form-group"><label>分类: '+kb.sections[si].h+'</label></div><div class="form-group"><label>条目内容</label><textarea id="s_kbitem" rows="4">'+item+'</textarea></div>';}
+  return '<div class="form-group"><label>分类: '+kb.sections[si].h+'</label></div><div class="form-group"><label>条目内容</label><textarea id="s_kbitem" rows="4" placeholder="输入知识条目..."></textarea></div>';
+}
+function saveKBItem(param) {
+  const parts=param.split(':');const cat=parts[0];const si=+parts[1];
+  const txt=v('s_kbitem');if(!txt)return showToast('请输入内容');
+  if(parts.length===3){const ii=+parts[2];DB.kbData[cat].sections[si].items[ii]=txt;}
+  else{DB.kbData[cat].sections[si].items.push(txt);}
+  saveData();openSubPage('kb',cat);showToast(parts.length===3?'已更新':'已添加');
+}
+
+function closeModal(){document.getElementById('modalOverlay').classList.remove('show');}
+document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+function v(id){return document.getElementById(id)?.value||'';}
+
+// ============ Sub Page ============
+function openSubPage(type,param){
+  const sub=document.getElementById('subPage');
+  const title=document.getElementById('subTitle');
+  const body=document.getElementById('subBody');
+  if(type==='kb'){const kb=DB.kbData[param];if(!kb)return;title.textContent=kb.title;body.innerHTML=renderKBDetail(param);}
+  else if(type==='finance'){title.textContent='财务明细';body.innerHTML=renderFinanceDetail();setTimeout(renderFinanceDetailChart,100);}
+  else if(type==='project'){const p=DB.projects.find(x=>x.id===param);if(!p)return;title.textContent=p.name;body.innerHTML=renderProjectDetail(p);}
+  else if(type==='transaction'){title.textContent=param==='income'?'收入明细':'支出明细';body.innerHTML=renderTransactionList(param);}
+  sub.classList.add('show');body.scrollTop=0;
+}
+function toggleMonthBreakdown(month){
+  const el=document.getElementById('mbd_'+month);
+  if(el)el.style.display=el.style.display==='none'?'block':'none';
+}
+function closeSubPage(){document.getElementById('subPage').classList.remove('show');}
+function openProjectDetail(id){openSubPage('project',id);}
+
+function renderFinanceDetail(){
+  const curM=new Date().toISOString().slice(0,7);
+  const cur=DB.finance.find(f=>f.month===curM)||DB.finance[DB.finance.length-1];
+  const prev=DB.finance[DB.finance.length-2]||cur;
+  const profit=cur.income-cur.expense;const margin=(profit/cur.income*100).toFixed(1);
+  const prevProfit=prev.income-prev.expense;
+  const incChg=((cur.income-prev.income)/prev.income*100).toFixed(1);
+  const expChg=((cur.expense-prev.expense)/prev.expense*100).toFixed(1);
+  const profChg=((profit-prevProfit)/prevProfit*100).toFixed(1);
+  const incomeSources={};const expenseSources={};
+  DB.transactions.forEach(t=>{if(t.type==='income')incomeSources[t.source]=(incomeSources[t.source]||0)+t.amount;else expenseSources[t.source]=(expenseSources[t.source]||0)+t.amount;});
+  const totalInc=Object.values(incomeSources).reduce((s,x)=>s+x,0)||1;
+  const totalExp=Object.values(expenseSources).reduce((s,x)=>s+x,0)||1;
+  const incColor=['#16a34a','#22c55e','#4ade80','#86efac','#bbf7d0'];
+  const expColor=['#dc2626','#ef4444','#f87171','#fca5a5','#fecaca'];
+  const incSourceH=Object.entries(incomeSources).map(([k,x],i)=>{const pct=(x/totalInc*100).toFixed(1);return '<div class="fin-source-item"><div style="flex:1;"><div style="display:flex;justify-content:space-between"><span>'+k+'</span><span style="font-weight:600;color:#16a34a;">¥'+x.toLocaleString()+' ('+pct+'%)</span></div><div class="fin-source-bar"><div class="fin-source-fill" style="width:'+pct+'%;background:'+incColor[i%5]+';"></div></div></div></div>';}).join('')||'<div class="empty"><p>暂无收入数据</p></div>';
+  const expSourceH=Object.entries(expenseSources).map(([k,x],i)=>{const pct=(x/totalExp*100).toFixed(1);return '<div class="fin-source-item"><div style="flex:1;"><div style="display:flex;justify-content:space-between"><span>'+k+'</span><span style="font-weight:600;color:#dc2626;">¥'+x.toLocaleString()+' ('+pct+'%)</span></div><div class="fin-source-bar"><div class="fin-source-fill" style="width:'+pct+'%;background:'+expColor[i%5]+';"></div></div></div></div>';}).join('')||'<div class="empty"><p>暂无支出数据</p></div>';
+  const recentH=DB.transactions.slice(0,8).map(t=>'<div class="fin-row" style="cursor:pointer;"><div class="fin-info"><h5>'+t.source+(t.client?' · '+t.client:'')+'</h5><p>'+t.date+' · '+(t.note||'')+'</p></div><div class="fin-amt '+t.type+'">'+(t.type==='income'?'+':'-')+'¥'+t.amount.toLocaleString()+'</div></div>').join('');
+  const histH=DB.finance.length?DB.finance.sort((a,b)=>b.month.localeCompare(a.month)).slice(0,12).map(f=>{
+    const pft=f.income-f.expense;
+    const hasBreakdown=Object.keys(f.incomeBreakdown||{}).length>0||Object.keys(f.expenseBreakdown||{}).length>0;
+    const breakHtml=hasBreakdown?'<span style="font-size:10px;color:var(--primary);margin-left:4px;cursor:pointer;" onclick="event.stopPropagation();toggleMonthBreakdown(\''+f.month+'\')" title="展开构成">▶</span>':'';
+    let bd='';
+    if(f.incomeBreakdown){
+      const incEntries=Object.entries(f.incomeBreakdown);
+      const expEntries=Object.entries(f.expenseBreakdown||{});
+      if(incEntries.length||expEntries.length){
+        bd='<div class="month-breakdown" id="mbd_'+f.month+'" style="display:none;padding:6px 0 6px 12px;font-size:11px;border-bottom:1px solid var(--border);">';
+        if(incEntries.length){
+          bd+='<div style="color:#16a34a;margin-bottom:3px;">收入：';
+          bd+=incEntries.map(([k,v])=>k+' <b>¥'+v.toLocaleString()+'</b>').join(' · ');
+          bd+='</div>';
+        }
+        if(expEntries.length){
+          bd+='<div style="color:#dc2626;">支出：';
+          bd+=expEntries.map(([k,v])=>k+' <b>¥'+v.toLocaleString()+'</b>').join(' · ');
+          bd+='</div>';
+        }
+        bd+='</div>';
+      }
+    }
+    return '<div><div class="hist-month-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="editFinanceMonth(\''+f.month+'\')"><span style="font-size:12px;">'+f.month+breakHtml+'</span><span style="font-size:12px;color:#16a34a;font-weight:600;">¥'+f.income.toLocaleString()+'</span><span style="font-size:12px;color:#dc2626;font-weight:600;">¥'+f.expense.toLocaleString()+'</span><span style="font-size:12px;font-weight:600;color:'+(pft>=0?'#16a34a':'#dc2626')+';">¥'+pft.toLocaleString()+'</span><span style="font-size:10px;color:var(--text-light);">编辑</span></div>'+bd+'</div>';
+  }).join(''):'<div class="empty"><p>暂无历史数据</p></div>';
+  // Annual totals
+  const curY=new Date().getFullYear().toString();
+  const yearFin=DB.finance.filter(f=>f.month.startsWith(curY));
+  const yearInc=yearFin.reduce((s,f)=>s+f.income,0);
+  const yearExp=yearFin.reduce((s,f)=>s+f.expense,0);
+  const yearBal=yearInc-yearExp;
+  const annualH='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;"><div style="background:var(--primary-light);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--text-light);">'+curY+'年总收入</div><div style="font-size:15px;font-weight:700;color:#16a34a;">¥'+yearInc.toLocaleString()+'</div></div><div style="background:var(--primary-light);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--text-light);">'+curY+'年总支出</div><div style="font-size:15px;font-weight:700;color:#dc2626;">¥'+yearExp.toLocaleString()+'</div></div><div style="background:var(--primary-light);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--text-light);">'+curY+'年结余</div><div style="font-size:15px;font-weight:700;color:'+(yearBal>=0?'#16a34a':'#dc2626')+';">¥'+yearBal.toLocaleString()+'</div></div></div>';
+  return '<div style="display:flex;gap:8px;margin-bottom:10px;"><button class="btn btn-primary" style="flex:1;justify-content:center;padding:10px;" onclick="openSheet(\'bulkFinance\')">📥 录入月度数据</button><button class="btn btn-outline" style="flex:1;justify-content:center;padding:10px;" onclick="openSheet(\'bulkTransaction\')">💰 批量导入流水</button></div>'+'<div class="fin-summary"><div class="fin-summary-card income" onclick="openSubPage(\'transaction\',\'income\')" style="cursor:pointer;"><div class="fin-summary-label">本月收入</div><div class="fin-summary-value">¥'+cur.income.toLocaleString()+'</div><div class="fin-summary-sub">环比 '+(incChg>=0?'+':'')+incChg+'% · 点击看明细</div></div><div class="fin-summary-card expense" onclick="openSubPage(\'transaction\',\'expense\')" style="cursor:pointer;"><div class="fin-summary-label">本月支出</div><div class="fin-summary-value">¥'+cur.expense.toLocaleString()+'</div><div class="fin-summary-sub">环比 '+(expChg>=0?'+':'')+expChg+'% · 点击看明细</div></div><div class="fin-summary-card profit"><div class="fin-summary-label">本月利润</div><div class="fin-summary-value">¥'+profit.toLocaleString()+'</div><div class="fin-summary-sub">环比 '+(profChg>=0?'+':'')+profChg+'%</div></div><div class="fin-summary-card margin"><div class="fin-summary-label">利润率</div><div class="fin-summary-value">'+margin+'%</div><div class="fin-summary-sub">健康度 '+(margin>=30?'优秀':margin>=20?'良好':'需优化')+'</div></div></div>'+annualH+'<div class="card"><div class="card-title"><span>月度数据总览</span><span style="font-size:11px;color:var(--text-light);">点击编辑 · ▶展开构成</span></div>'+histH+'</div><div class="card"><div class="card-title"><span>收支趋势</span></div><div class="chart-wrap"><canvas id="finDetailChart"></canvas></div></div><div class="fin-source"><div class="card-title" style="margin-bottom:8px;">累计收入构成</div>'+incSourceH+'</div><div class="fin-source"><div class="card-title" style="margin-bottom:8px;">累计支出构成</div>'+expSourceH+'</div><div class="card"><div class="card-title"><span>最近流水</span></div>'+recentH+'</div>';
+}
+let finDetailInst;
+function renderFinanceDetailChart(){
+  const ctx=document.getElementById('finDetailChart');if(!ctx)return;if(finDetailInst)finDetailInst.destroy();
+  finDetailInst=new Chart(ctx,{type:'bar',data:{labels:DB.finance.map(f=>f.month.slice(5)),datasets:[{label:'收入',data:DB.finance.map(f=>f.income),backgroundColor:'#16a34a',borderRadius:4},{label:'支出',data:DB.finance.map(f=>f.expense),backgroundColor:'#dc2626',borderRadius:4},{label:'利润',data:DB.finance.map(f=>f.income-f.expense),backgroundColor:'#2563eb',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}},scales:{y:{ticks:{font:{size:9}}},x:{ticks:{font:{size:9}}}}}});
+}
+function renderTransactionList(type){
+  const items=DB.transactions.filter(t=>t.type===type).sort((a,b)=>b.date.localeCompare(a.date));
+  const total=items.reduce((s,t)=>s+t.amount,0);
+  return '<div class="fin-summary-card '+(type)+'" style="margin-bottom:12px;cursor:default;"><div class="fin-summary-label">'+(type==='income'?'总收入':'总支出')+'</div><div class="fin-summary-value">¥'+total.toLocaleString()+'</div><div class="fin-summary-sub">共 '+items.length+' 笔</div></div><div class="card">'+(items.length?items.map(t=>'<div class="fin-row" style="cursor:default;"><div class="fin-info"><h5>'+t.source+(t.client?' · '+t.client:'')+'</h5><p>'+t.date+' · '+(t.note||'')+'</p></div><div class="fin-amt '+t.type+'">'+(t.type==='income'?'+':'-')+'¥'+t.amount.toLocaleString()+'</div></div>').join(''):'<div class="empty"><p>暂无记录</p></div>')+'</div>';
+}
+function editFinanceMonth(month){
+  const f=DB.finance.find(x=>x.month===month);if(!f)return;
+  // Ensure breakdown fields exist
+  if(!f.incomeBreakdown)f.incomeBreakdown={};
+  if(!f.expenseBreakdown)f.expenseBreakdown={};
+  const incBreakStr=Object.entries(f.incomeBreakdown||{}).map(([k,v])=>k+','+v).join('\n');
+  const expBreakStr=Object.entries(f.expenseBreakdown||{}).map(([k,v])=>k+','+v).join('\n');
+  openSheet('editFinanceMonth');
+  document.getElementById('modalTitle').textContent='编辑 '+month+' 数据';
+  setTimeout(()=>{
+    const fi=document.getElementById('s_fn_income');
+    const fe=document.getElementById('s_fn_expense');
+    const bi=document.getElementById('s_fn_incbreak');
+    const be=document.getElementById('s_fn_expbreak');
+    if(fi)fi.value=f.income;
+    if(fe)fe.value=f.expense;
+    if(bi)bi.value=incBreakStr;
+    if(be)be.value=expBreakStr;
+  },50);
+  document.getElementById('modalSave').onclick=()=>{
+    f.income=+v('s_fn_income')||0;
+    f.expense=+v('s_fn_expense')||0;
+    // Parse income breakdown
+    const incBreak={};
+    const incTxt=v('s_fn_incbreak').trim();
+    incTxt.split('\n').forEach(line=>{const p=line.split(',');if(p.length>=2){const k=p[0].trim(),val=+p[1]||0;if(k)incBreak[k]=val;}});
+    f.incomeBreakdown=incBreak;
+    // Parse expense breakdown
+    const expBreak={};
+    const expTxt=v('s_fn_expbreak').trim();
+    expTxt.split('\n').forEach(line=>{const p=line.split(',');if(p.length>=2){const k=p[0].trim(),val=+p[1]||0;if(k)expBreak[k]=val;}});
+    f.expenseBreakdown=expBreak;
+    saveData();openSubPage('finance');showToast(month+' 已更新');
+  };
+}
+function renderProjectDetail(p){
+  const statusLabel={quote:'报价中',produce:'生产中',qc:'质检中',done:'已交付'}[p.status];
+  const statusBadge={quote:'badge-gray',produce:'badge-blue',qc:'badge-amber',done:'badge-green'}[p.status];
+  const order=['quote','produce','qc','done'];const idx=order.indexOf(p.status);
+  return '<div class="card"><div class="card-title" style="align-items:flex-start;"><span style="flex:1;">项目信息</span><span class="badge '+statusBadge+'">'+statusLabel+'</span></div><div class="proj-detail-row"><span class="lbl">项目名称</span><span class="val">'+p.name+'</span></div><div class="proj-detail-row"><span class="lbl">客户</span><span class="val">'+p.client+'</span></div><div class="proj-detail-row"><span class="lbl">预算</span><span class="val">¥'+p.budget.toLocaleString()+'</span></div><div class="proj-detail-row"><span class="lbl">截止日期</span><span class="val">'+p.deadline+'</span></div><div class="proj-detail-row"><span class="lbl">备注</span><span class="val">'+(p.notes||'-')+'</span></div></div><div class="card"><div class="card-title"><span>进度</span><span style="color:var(--primary);font-weight:600;">'+p.progress+'%</span></div><div class="progress-bar" style="height:6px;"><div class="progress-fill" style="width:'+p.progress+'%"></div></div><div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:var(--text-light);">'+order.map((k,i)=>{const done=i<=idx;return '<span style="color:'+(done?'var(--primary)':'var(--text-light)')+';font-weight:'+(i===idx?700:400)+';">'+(order[i]===p.status?'●':(done?'✓':'○'))+' '+['报价','生产','质检','交付'][i]+'</span>';}).join('')+'</div></div><div style="display:flex;gap:8px;">'+(p.status!=='done'?'<button class="btn btn-primary" style="flex:1;justify-content:center;padding:12px;" onclick="advProject('+p.id+');closeSubPage();">推进到下一阶段</button>':'<div style="flex:1;text-align:center;padding:12px;background:var(--success-light);color:var(--success);border-radius:8px;font-weight:600;">✅ 项目已完成</div>')+'<button class="btn btn-outline" style="color:#dc2626;padding:12px;" onclick="if(confirm(\'确认删除？\')){delProject('+p.id+');closeSubPage();}">删除</button></div>';
+}
+
+// ============ Sync Engine ============
+let SYNC_ID = localStorage.getItem('scx_sync_id') || '';
+let SYNC_SERVER = localStorage.getItem('scx_sync_server') || '';
+let syncTimer = null;
+let syncOnline = false;
+let lastSyncTs = 0;
+let AUTH_TOKEN = localStorage.getItem('scx_auth_token') || '';
+let AUTH_USER = localStorage.getItem('scx_auth_user') || '';
+let loginMode = 'login'; // 'login' or 'register'
+
+// ============ Auth System ============
+function switchLoginTab(mode) {
+  loginMode = mode;
+  document.querySelectorAll('.login-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&mode==='login')||(i===1&&mode==='register')));
+  document.getElementById('loginForm').style.display = mode==='login'?'block':'none';
+  document.getElementById('registerForm').style.display = mode==='register'?'block':'none';
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('loginFooterText').textContent = mode==='login'?'还没有账号？':'已有账号？';
+  document.querySelector('.login-footer a').textContent = mode==='login'?'立即注册':'去登录';
+  document.querySelector('.login-footer a').onclick = () => switchLoginTab(mode==='login'?'register':'login');
+}
+
+function setLoginError(msg) { document.getElementById('loginError').textContent = msg; }
+
+function handleLogin() {
+  const u = document.getElementById('l_username').value.trim();
+  const p = document.getElementById('l_password').value;
+  if (!u || !p) return setLoginError('请输入用户名和密码');
+  setLoginError('登录中...');
+  fetch(SYNC_SERVER + '/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: u, password: p })
+  }).then(r => r.json()).then(d => {
+    if (d.ok) {
+      AUTH_TOKEN = d.token;
+      AUTH_USER = d.username;
+      localStorage.setItem('scx_auth_token', d.token);
+      localStorage.setItem('scx_auth_user', d.username);
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('loginUserInfo').innerHTML = AUTH_USER + ' <span class="logout-link" onclick="handleLogout()">退出</span>';
+      initSync();
+      switchTab('overview');
+    } else {
+      setLoginError(d.error || '登录失败');
+    }
+  }).catch(e => { setLoginError('无法连接服务器，请检查网络'); });
+}
+
+function handleRegister() {
+  const u = document.getElementById('r_username').value.trim();
+  const p = document.getElementById('r_password').value;
+  const p2 = document.getElementById('r_password2').value;
+  if (!u || !p) return setLoginError('请填写完整信息');
+  if (u.length < 2 || u.length > 30) return setLoginError('用户名需要2-30个字符');
+  if (p.length < 6) return setLoginError('密码至少需要6个字符');
+  if (p !== p2) return setLoginError('两次密码不一致');
+  setLoginError('注册中...');
+  fetch(SYNC_SERVER + '/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: u, password: p })
+  }).then(r => r.json()).then(d => {
+    if (d.ok) {
+      setLoginError('');
+      document.getElementById('l_username').value = u;
+      document.getElementById('l_password').value = '';
+      switchLoginTab('login');
+      showToast('注册成功，请登录');
+    } else {
+      setLoginError(d.error || '注册失败');
+    }
+  }).catch(e => { setLoginError('无法连接服务器'); });
+}
+
+function handleLogout() {
+  if (confirm('确定退出登录？本地数据不会丢失。')) {
+    if (SYNC_SERVER && AUTH_TOKEN) {
+      fetch(SYNC_SERVER + '/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + AUTH_TOKEN }
+      }).catch(() => {});
+    }
+    if (syncTimer) clearInterval(syncTimer);
+    syncOnline = false;
+    AUTH_TOKEN = ''; AUTH_USER = '';
+    localStorage.removeItem('scx_auth_token');
+    localStorage.removeItem('scx_auth_user');
+    updateSyncBadge('none');
+    document.getElementById('loginUserInfo').innerHTML = '';
+    document.getElementById('loginOverlay').style.display = 'flex';
+    document.getElementById('l_username').value = '';
+    document.getElementById('l_password').value = '';
+    document.getElementById('loginError').textContent = '';
+    switchLoginTab('login');
+  }
+}
+
+function authFetch(url, opts) {
+  opts = opts || {};
+  opts.headers = opts.headers || {};
+  if (AUTH_TOKEN) opts.headers['Authorization'] = 'Bearer ' + AUTH_TOKEN;
+  return fetch(url, opts);
+}
+
+// ============ Sync System (now uses auth) ============
+
+function initSync(){
+  // Only activate if logged in with server
+  if (!SYNC_SERVER || !AUTH_TOKEN) {
+    document.getElementById('syncBadge').style.display = 'none';
+    updateSyncBadge('none');
+    return;
+  }
+  document.getElementById('syncBadge').style.display = 'inline-block';
+  checkSyncHealth().then(ok => {
+    if (ok) { pullFromServer(true); startSyncPolling(); }
+  });
+  setTimeout(() => pushToServer(), 2000);
+}
+
+function checkSyncHealth(){
+  return authFetch(SYNC_SERVER + '/api/health', { method: 'GET', signal: AbortSignal.timeout(3000) })
+    .then(r => r.json())
+    .then(d => {
+      if (d.ok) { syncOnline = true; updateSyncBadge('online'); return true; }
+      syncOnline = false; updateSyncBadge('offline'); return false;
+    })
+    .catch(() => { syncOnline = false; updateSyncBadge('offline'); return false; });
+}
+
+function startSyncPolling(){
+  if (syncTimer) clearInterval(syncTimer);
+  syncTimer = setInterval(() => {
+    if (syncOnline) pullFromServer(false);
+    else checkSyncHealth();
+  }, 5000);
+}
+
+function updateSyncBadge(status){
+  const badge = document.getElementById('syncBadge');
+  const statusEl = document.getElementById('syncStatus');
+  if (status === 'online') {
+    if (badge) { badge.style.display = 'inline-block'; badge.style.background = '#dcfce7'; badge.style.color = '#16a34a'; badge.textContent = '🟢 已同步'; }
+    if (statusEl) { statusEl.textContent = '🟢 已连接 · 数据自动同步中'; statusEl.className = 'sync-status online'; }
+  } else if (status === 'syncing') {
+    if (badge) { badge.style.display = 'inline-block'; badge.style.background = '#fef3c7'; badge.style.color = '#f59e0b'; badge.textContent = '🟡 同步中'; }
+    if (statusEl) { statusEl.textContent = '🟡 同步中...'; statusEl.className = 'sync-status syncing'; }
+  } else if (status === 'none') {
+    if (badge) badge.style.display = 'none';
+  } else {
+    if (badge) { badge.style.display = 'inline-block'; badge.style.background = '#fee2e2'; badge.style.color = '#dc2626'; badge.textContent = '🔴 离线'; }
+    if (statusEl) { statusEl.textContent = '🔴 无法连接同步服务器 · 数据仅保存在本地'; statusEl.className = 'sync-status offline'; }
+  }
+}
+
+function pushToServer(){
+  if (!syncOnline || !SYNC_SERVER || !AUTH_TOKEN) return;
+  updateSyncBadge('syncing');
+  lastSyncTs = Date.now();
+  const payload = { db: DB, ts: lastSyncTs, v: 1 };
+  authFetch(SYNC_SERVER + '/api/sync/data', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(8000)
+  }).then(r => r.json()).then(d => {
+    if (d.ok) { updateSyncBadge('online'); }
+    if (d.merged) { pullFromServer(true); }
+  }).catch(() => { syncOnline = false; updateSyncBadge('offline'); });
+}
+
+function pullFromServer(silent){
+  if (!SYNC_SERVER || !AUTH_TOKEN) return;
+  authFetch(SYNC_SERVER + '/api/sync/data', {
+    method: 'GET',
+    signal: AbortSignal.timeout(8000)
+  }).then(r => r.json()).then(d => {
+    if (d.ok && d.data && d.timestamp > lastSyncTs) {
+      DB = deepMergeLocal(DB, d.data);
+      saveLocal(); // save merged data to localStorage (no push loop)
+      lastSyncTs = d.timestamp;
+      updateSyncBadge('online');
+      switchTab(currentTab);
+      if (!silent) showToast('已同步最新数据');
+    } else if (d.ok) {
+      updateSyncBadge('online');
+    }
+  }).catch(() => { syncOnline = false; updateSyncBadge('offline'); });
+}
+
+function deepMergeLocal(base, incoming){
+  if (!base || typeof base !== 'object') return incoming;
+  if (!incoming || typeof incoming !== 'object') return incoming;
+  const result = {};
+  for (const key of Object.keys({...base, ...incoming})) {
+    if (Array.isArray(incoming[key])) {
+      if (Array.isArray(base[key]) && incoming[key].length > 0 && incoming[key][0] && typeof incoming[key][0].id !== 'undefined') {
+        const merged = [...base[key]];
+        const baseIds = new Map(merged.map((x, i) => [x.id, i]));
+        for (const item of incoming[key]) {
+          if (item && typeof item.id !== 'undefined') {
+            const idx = baseIds.get(item.id);
+            if (idx !== undefined) merged[idx] = item;
+            else { merged.push(item); baseIds.set(item.id, merged.length - 1); }
+          }
+        }
+        result[key] = merged;
+      } else { result[key] = incoming[key]; }
+    } else if (incoming[key] && typeof incoming[key] === 'object' && !Array.isArray(incoming[key])) {
+      result[key] = deepMergeLocal(base[key] || {}, incoming[key]);
+    } else {
+      result[key] = (incoming[key] !== undefined) ? incoming[key] : base[key];
+    }
+  }
+  return result;
+}
+
+function forcePushSync(){ pushToServer(); showToast('已推送'); closeSyncDialog(); }
+function forcePullSync(){ pullFromServer(false); closeSyncDialog(); }
+function copySyncId(){
+  if (!SYNC_SERVER) { showToast('请先配置同步服务器地址'); return; }
+  navigator.clipboard.writeText(SYNC_SERVER).then(() => showToast('服务器地址已复制')).catch(() => showToast('复制失败'));
+}
+function disconnectSync(){
+  if (syncTimer) clearInterval(syncTimer); syncTimer = null;
+  syncOnline = false;
+  SYNC_SERVER = '';
+  localStorage.removeItem('scx_sync_server');
+  updateSyncBadge('none');
+  document.getElementById('syncBadge').style.display = 'none';
+  document.getElementById('syncStatus').textContent = '已断开同步 · 需要重新登录';
+  document.getElementById('syncStatus').className = 'sync-status';
+  showToast('同步已断开，请重新登录配置');
+}
+function openSyncSettings(){
+  document.getElementById('syncIdDisplay').textContent = AUTH_USER ? '👤 ' + AUTH_USER : '未登录';
+  document.getElementById('syncServerInput').value = SYNC_SERVER || '';
+  document.getElementById('syncStatus').textContent = SYNC_SERVER ? (syncOnline ? '🟢 已连接 · ' + SYNC_SERVER : '🔴 服务器离线 · ' + SYNC_SERVER) : '⚪ 未配置服务器';
+  updateSyncBadge(syncOnline ? 'online' : (SYNC_SERVER ? 'offline' : 'none'));
+  document.getElementById('syncDialog').classList.add('show');
+}
+function saveSyncConfig(){
+  const url = document.getElementById('syncServerInput').value.trim().replace(/\/+$/, '');
+  if (!url) { showToast('请输入服务器地址'); return; }
+  if (!AUTH_TOKEN) { showToast('请先登录'); closeSyncDialog(); document.getElementById('loginOverlay').style.display='flex'; return; }
+  SYNC_SERVER = url;
+  localStorage.setItem('scx_sync_server', url);
+  document.getElementById('syncBadge').style.display = 'inline-block';
+  document.getElementById('syncStatus').textContent = '🔄 正在连接 ' + url + ' ...';
+  updateSyncBadge('offline');
+  checkSyncHealth().then(ok => {
+    if (ok) { pullFromServer(true); startSyncPolling(); }
+  });
+  showToast('同步配置已保存');
+  closeSyncDialog();
+}
+function closeSyncDialog(){ document.getElementById('syncDialog').classList.remove('show'); }
+document.getElementById('syncDialog').addEventListener('click', e => { if (e.target === e.currentTarget) closeSyncDialog(); });
+
+// ============ Init ============
+var now = new Date();
+var monthNames = ['1','2','3','4','5','6','7','8','9','10','11','12'];
+var weekDays = ['日','一','二','三','四','五','六'];
+document.getElementById('headerDate').textContent = monthNames[now.getMonth()] + '月' + now.getDate() + '日 周' + weekDays[now.getDay()];
+
+function initApp() {
+  // Auto-detect server: if served from web (not file://) and no server configured, use same origin
+  if (!SYNC_SERVER && window.location.protocol !== 'file:') {
+    SYNC_SERVER = window.location.origin;
+    localStorage.setItem('scx_sync_server', SYNC_SERVER);
+  }
+  // If logged in, verify token and enter app
+  if (AUTH_TOKEN && AUTH_USER && SYNC_SERVER) {
+    document.getElementById('loginUserInfo').innerHTML = AUTH_USER + ' <span class="logout-link" onclick="handleLogout()">退出</span>';
+    authFetch(SYNC_SERVER + '/api/auth/verify', { method: 'GET', signal: AbortSignal.timeout(5000) })
+      .then(r => r.json())
+      .then(d => {
+        if (d.ok) {
+          document.getElementById('loginOverlay').style.display = 'none';
+          initSync();
+          switchTab('overview');
+          updateFab();
+        } else {
+          // Token expired - show login
+          AUTH_TOKEN = ''; AUTH_USER = '';
+          localStorage.removeItem('scx_auth_token');
+          localStorage.removeItem('scx_auth_user');
+          showLoginPage();
+        }
+      })
+      .catch(() => {
+        // Server unreachable - still allow offline mode with cached login
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('loginUserInfo').innerHTML = AUTH_USER + ' <span class="logout-link" onclick="handleLogout()">退出</span> <span style="color:var(--warning);font-size:9px;">离线</span>';
+        switchTab('overview');
+        updateFab();
+        updateSyncBadge('offline');
+      });
+  } else {
+    showLoginPage();
+  }
+}
+
+function showLoginPage() {
+  document.getElementById('loginOverlay').style.display = 'flex';
+  document.getElementById('l_username').value = '';
+  document.getElementById('l_password').value = '';
+  document.getElementById('loginError').textContent = '';
+  switchLoginTab('login');
+  // If still no server (offline file:// mode), show server input
+  if (!SYNC_SERVER) {
+    document.getElementById('loginError').textContent = '离线模式：请先填入同步服务器地址后登录';
+    var serverSection = document.getElementById('loginServerSection');
+    if (!serverSection) {
+      serverSection = document.createElement('div');
+      serverSection.id = 'loginServerSection';
+      serverSection.style.marginTop = '12px';
+      serverSection.innerHTML = '<div class="form-group"><label>同步服务器地址</label><input id="login_server_url" type="text" placeholder="https://xxx.onrender.com 或 http://192.168.x.x:3456" style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none;background:var(--bg);color:var(--text);"></div><button class="login-btn" onclick="saveLoginServer()" style="margin-top:0;font-size:13px;">💾 保存服务器地址</button>';
+      document.getElementById('loginForm').appendChild(serverSection);
+    }
+    serverSection.style.display = 'block';
+  } else {
+    var serverSection = document.getElementById('loginServerSection');
+    if (serverSection) serverSection.style.display = 'none';
+  }
+}
+
+function saveLoginServer() {
+  var url = document.getElementById('login_server_url').value.trim().replace(/\/+$/, '');
+  if (!url) { setLoginError('请输入服务器地址'); return; }
+  SYNC_SERVER = url;
+  localStorage.setItem('scx_sync_server', url);
+  setLoginError('服务器地址已保存，请输入用户名密码登录');
+  document.getElementById('loginServerSection').style.display = 'none';
+  // Auto-update the sync settings
+  document.getElementById('syncServerInput').value = url;
+}
+
+initApp();
+// Enter key support for login
+document.getElementById('l_password').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+document.getElementById('r_password2').addEventListener('keydown', e => { if (e.key === 'Enter') handleRegister(); });
+</script>
+</body>
+</html>

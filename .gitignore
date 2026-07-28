@@ -1,0 +1,4 @@
+node_modules/
+.sync_data/
+*.log
+.DS_Store

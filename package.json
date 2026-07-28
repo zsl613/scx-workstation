@@ -1,0 +1,15 @@
+{
+  "name": "shuchuanxin-workstation",
+  "version": "2.8.0",
+  "description": "蜀川鑫工作台 - CNC机械加工工作室综合管理平台",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
