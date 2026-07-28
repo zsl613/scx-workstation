@@ -697,15 +697,40 @@ function renderMedia() {
   const pIcons = {抖音:'🎵',快手:'⚡',小红书:'📕',B站:'📺','微信视频号':'💬'};
   const pColors = {抖音:'#fee2e2',快手:'#fef3c7',小红书:'#fee2e2',B站:'#dbeafe','微信视频号':'#dcfce7'};
   document.getElementById('accountGrid').innerHTML = DB.accounts.map(a=>`
-    <div class="acct-card"><div class="acct-icon" style="background:${pColors[a.plt]||'#f1f5f9'};">${pIcons[a.plt]||'📱'}</div><div class="acct-info"><h5>${a.name}</h5><p>${a.plt}</p></div><div class="acct-stats"><div class="num">${(a.fans||0).toLocaleString()}</div><div class="label">粉丝</div></div></div>
+    <div class="acct-card" style="position:relative;">
+      <div style="position:absolute;top:6px;right:6px;display:flex;gap:4px;">
+        <button class="btn btn-sm btn-outline" onclick="openModal('account',${a.id})" style="padding:2px 6px;font-size:11px;">✏️</button>
+        <button class="btn btn-sm btn-outline" onclick="deleteAccount(${a.id})" style="padding:2px 6px;font-size:11px;color:#dc2626;">🗑️</button>
+      </div>
+      <div class="acct-icon" style="background:${pColors[a.plt]||'#f1f5f9'};">${pIcons[a.plt]||'📱'}</div><div class="acct-info"><h5>${a.name}</h5><p>${a.plt}</p></div><div class="acct-stats"><div class="num">${(a.fans||0).toLocaleString()}</div><div class="label">粉丝</div></div>
+    </div>
   `).join('')||'<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text-light);">暂无账号</div>';
 
   document.getElementById('hotVideosList').innerHTML = DB.hotVideos.slice().reverse().slice(0,10).map(v=>`
-    <div class="hot-item"><div style="flex:1;"><div style="font-size:13px;font-weight:500;">${v.title}</div><div style="font-size:11px;color:var(--text-light);">${v.author} · ${v.plt} · ${v.views}播放 · ${v.likes}赞</div>${v.note?`<div style="font-size:11px;color:var(--primary);margin-top:2px;">💡 ${v.note}</div>`:''}</div></div>
+    <div class="hot-item">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;">${v.title}</div>
+        <div style="font-size:11px;color:var(--text-light);">${v.author} · ${v.plt} · ${v.views}播放 · ${v.likes}赞</div>
+        ${v.note?`<div style="font-size:11px;color:var(--primary);margin-top:2px;">💡 ${v.note}</div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;justify-content:center;">
+        <button class="btn btn-sm btn-outline" onclick="openModal('hotVideo',${v.id})" style="padding:2px 8px;font-size:11px;">✏️</button>
+        <button class="btn btn-sm btn-outline" onclick="deleteHotVideo(${v.id})" style="padding:2px 8px;font-size:11px;color:#dc2626;">🗑️</button>
+      </div>
+    </div>
   `).join('')||'<div style="text-align:center;padding:20px;color:var(--text-light);">暂无热门视频</div>';
 
   document.getElementById('adviceList').innerHTML = DB.mediaAdvice.slice().reverse().map(a=>`
-    <div style="padding:10px;border-bottom:1px solid var(--border);"><div style="font-size:13px;font-weight:500;margin-bottom:4px;">${a.title} <span class="badge badge-blue">${a.cat}</span></div><div style="font-size:12px;color:var(--text-light);line-height:1.6;">${a.content}</div></div>
+    <div style="padding:10px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start;">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;margin-bottom:4px;">${a.title} <span class="badge badge-blue">${a.cat}</span></div>
+        <div style="font-size:12px;color:var(--text-light);line-height:1.6;">${a.content}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;justify-content:center;flex-shrink:0;">
+        <button class="btn btn-sm btn-outline" onclick="openModal('advice',${a.id})" style="padding:2px 8px;font-size:11px;">✏️</button>
+        <button class="btn btn-sm btn-outline" onclick="deleteAdvice(${a.id})" style="padding:2px 8px;font-size:11px;color:#dc2626;">🗑️</button>
+      </div>
+    </div>
   `).join('')||'<div style="text-align:center;padding:20px;color:var(--text-light);">暂无建议</div>';
 
   document.getElementById('topicTable').innerHTML = DB.topics.map(t=>`
@@ -818,9 +843,10 @@ function toggleTodo(id) { const t=DB.todos.find(x=>x.id===id); if(t){t.status=t.
 function deleteTodo(id) { DB.todos=DB.todos.filter(t=>t.id!==id); saveLocal(); renderPersonal(); showToast('已删除'); }
 
 // ==================== Modal ====================
-function openModal(type) {
+function openModal(type, editId) {
   const ov=document.getElementById('modalOverlay'), t=document.getElementById('modalTitle'), b=document.getElementById('modalBody'), s=document.getElementById('modalSave');
   const today=new Date().toISOString().slice(0,10);
+  const isEdit = !!editId;
   const forms = {
     project:{title:'新建项目',html:`
       <div class="form-group"><label>项目名称</label><input id="f_name"></div>
@@ -858,20 +884,20 @@ function openModal(type) {
       <div class="form-group"><label>流水数据</label><textarea id="f_bulktx" rows="8" placeholder="2026-03-15,收入,35000,CNC加工,张总,铝合金外壳&#10;2026-03-20,支出,8000,材料费,,6061铝板采购&#10;格式：日期,类型(收入/支出),金额,来源/用途,客户,备注"></textarea></div>
       <div style="font-size:11px;color:var(--text-light);">💡 类型填"收入"或"支出"，金额为纯数字，客户和备注可选（留空用逗号占位）</div>
     `,save:()=>{ const txt=fv('f_bulktx').trim(); if(!txt) return showToast('请输入数据'); const lines=txt.split('\n'); let n=0; lines.forEach(line=>{ const parts=line.split(','); if(parts.length>=4){ const date=parts[0].trim(); const type=parts[1].trim()==='收入'?'income':'expense'; const amount=+parts[2]||0; const source=parts[3].trim(); const client=(parts[4]||'').trim(); const note=(parts[5]||'').trim(); if(date&&source&&amount>0){ DB.transactions.push({id:DB.nid.transaction++,date:date,type:type,amount:amount,source:source,client:client,note:note}); n++; } } }); saveLocal(); renderFinance(); showToast('已导入 '+n+' 条流水'); }},
-    account:{title:'添加账号',html:`
+    account:{title:isEdit?'编辑账号':'添加账号',html:`
       <div class="form-row"><div class="form-group"><label>平台</label><select id="f_plt"><option>抖音</option><option>快手</option><option>小红书</option><option>B站</option><option>微信视频号</option></select></div><div class="form-group"><label>账号名</label><input id="f_name"></div></div>
       <div class="form-row"><div class="form-group"><label>粉丝数</label><input id="f_fans" type="number" value="0"></div><div class="form-group"><label>当日播放</label><input id="f_views" type="number" value="0"></div></div>
-    `,save:()=>{ const a={id:DB.nid.account++,plt:fv('f_plt'),name:fv('f_name'),fans:+fv('f_fans')||0,views:+fv('f_views')||0,likes:0,cmt:0}; if(!a.name) return showToast('请输入账号名'); DB.accounts.push(a); saveLocal(); renderMedia(); showToast('账号已添加'); }},
-    hotVideo:{title:'添加热门视频',html:`
+    `,save:()=>{ const a={plt:fv('f_plt'),name:fv('f_name'),fans:+fv('f_fans')||0,views:+fv('f_views')||0}; if(!a.name) return showToast('请输入账号名'); if(isEdit){ const idx=DB.accounts.findIndex(x=>x.id===editId); if(idx>=0){ DB.accounts[idx]={...DB.accounts[idx],...a}; } } else { a.id=DB.nid.account++; a.likes=0; a.cmt=0; DB.accounts.push(a); } saveLocal(); renderMedia(); showToast(isEdit?'账号已更新':'账号已添加'); }},
+    hotVideo:{title:isEdit?'编辑热门视频':'添加热门视频',html:`
       <div class="form-row"><div class="form-group"><label>平台</label><select id="f_plt"><option>抖音</option><option>快手</option><option>小红书</option><option>B站</option></select></div><div class="form-group"><label>作者</label><input id="f_author"></div></div>
       <div class="form-group"><label>标题</label><input id="f_title"></div>
       <div class="form-row"><div class="form-group"><label>播放量</label><input id="f_views"></div><div class="form-group"><label>点赞量</label><input id="f_likes"></div></div>
       <div class="form-group"><label>二创建议</label><textarea id="f_note" rows="2"></textarea></div>
-    `,save:()=>{ const v={id:DB.nid.hotVideo++,plt:fv('f_plt'),title:fv('f_title'),author:fv('f_author'),views:fv('f_views'),likes:fv('f_likes'),link:'',note:fv('f_note'),date:today}; if(!v.title) return showToast('请输入标题'); DB.hotVideos.push(v); saveLocal(); renderMedia(); showToast('已添加'); }},
-    advice:{title:'添加运营建议',html:`
+    `,save:()=>{ const v={plt:fv('f_plt'),title:fv('f_title'),author:fv('f_author'),views:fv('f_views'),likes:fv('f_likes'),note:fv('f_note')}; if(!v.title) return showToast('请输入标题'); if(isEdit){ const idx=DB.hotVideos.findIndex(x=>x.id===editId); if(idx>=0){ DB.hotVideos[idx]={...DB.hotVideos[idx],...v}; } } else { v.id=DB.nid.hotVideo++; v.link=''; v.date=today; DB.hotVideos.push(v); } saveLocal(); renderMedia(); showToast(isEdit?'视频已更新':'已添加'); }},
+    advice:{title:isEdit?'编辑运营建议':'添加运营建议',html:`
       <div class="form-row"><div class="form-group"><label>标题</label><input id="f_title"></div><div class="form-group"><label>分类</label><select id="f_cat"><option>发布策略</option><option>平台策略</option><option>内容方向</option><option>涨粉技巧</option><option>其他</option></select></div></div>
       <div class="form-group"><label>内容</label><textarea id="f_content" rows="3"></textarea></div>
-    `,save:()=>{ const a={id:DB.nid.advice++,date:today,title:fv('f_title'),cat:fv('f_cat'),content:fv('f_content')}; if(!a.title) return showToast('请输入标题'); DB.mediaAdvice.push(a); saveLocal(); renderMedia(); showToast('已添加'); }},
+    `,save:()=>{ const a={title:fv('f_title'),cat:fv('f_cat'),content:fv('f_content')}; if(!a.title) return showToast('请输入标题'); if(isEdit){ const idx=DB.mediaAdvice.findIndex(x=>x.id===editId); if(idx>=0){ DB.mediaAdvice[idx]={...DB.mediaAdvice[idx],...a}; } } else { a.id=DB.nid.advice++; a.date=today; DB.mediaAdvice.push(a); } saveLocal(); renderMedia(); showToast(isEdit?'建议已更新':'已添加'); }},
     topic:{title:'添加选题',html:`
       <div class="form-row"><div class="form-group"><label>平台</label><select id="f_plt"><option>抖音</option><option>快手</option><option>小红书</option><option>B站</option></select></div><div class="form-group"><label>类型</label><select id="f_type"><option>实操展示</option><option>知识分享</option><option>科普对比</option><option>日常vlog</option></select></div></div>
       <div class="form-group"><label>选题</label><input id="f_topic"></div>
@@ -907,9 +933,20 @@ function openModal(type) {
   };
   const form = forms[type]; if(!form) return;
   t.textContent = form.title; b.innerHTML = form.html;
+  // Fill edit data
+  if(isEdit && (type==='account'||type==='hotVideo'||type==='advice')){
+    if(type==='account'){ const it=DB.accounts.find(x=>x.id===editId); if(it){ setVal('f_plt',it.plt); setVal('f_name',it.name); setVal('f_fans',it.fans); setVal('f_views',it.views); } }
+    if(type==='hotVideo'){ const it=DB.hotVideos.find(x=>x.id===editId); if(it){ setVal('f_plt',it.plt); setVal('f_title',it.title); setVal('f_author',it.author); setVal('f_views',it.views); setVal('f_likes',it.likes); setVal('f_note',it.note); } }
+    if(type==='advice'){ const it=DB.mediaAdvice.find(x=>x.id===editId); if(it){ setVal('f_title',it.title); setVal('f_cat',it.cat); setVal('f_content',it.content); } }
+  }
   s.onclick = () => { form.save(); closeModal(); };
   ov.classList.add('show');
 }
+
+function setVal(id,val){ const el=document.getElementById(id); if(el) el.value=val||''; }
+function deleteAccount(id){ if(!confirm('确定删除该账号？')) return; DB.accounts=DB.accounts.filter(a=>a.id!==id); saveLocal(); renderMedia(); showToast('已删除'); }
+function deleteHotVideo(id){ if(!confirm('确定删除该视频？')) return; DB.hotVideos=DB.hotVideos.filter(v=>v.id!==id); saveLocal(); renderMedia(); showToast('已删除'); }
+function deleteAdvice(id){ if(!confirm('确定删除该建议？')) return; DB.mediaAdvice=DB.mediaAdvice.filter(a=>a.id!==id); saveLocal(); renderMedia(); showToast('已删除'); }
 
 function closeModal() { document.getElementById('modalOverlay').classList.remove('show'); }
 function fv(id) { return document.getElementById(id)?.value||''; }
