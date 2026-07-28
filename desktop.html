@@ -309,7 +309,7 @@ tr:hover td { background:#f8fafc; }
       <div class="chart-container-lg"><canvas id="chartMediaDaily"></canvas></div>
     </div>
     <div class="card"><div class="card-title"><span>选题管理</span><button class="btn btn-outline btn-sm" onclick="openModal('topic')">+ 添加</button></div>
-      <div style="max-height:320px;overflow-y:auto;"><table><thead><tr><th>日期</th><th>平台</th><th>选题</th><th>类型</th><th>状态</th></tr></thead><tbody id="topicTable"></tbody></table></div>
+      <div style="max-height:320px;overflow-y:auto;"><table><thead><tr><th>日期</th><th>平台</th><th>选题</th><th>类型</th><th>状态</th><th>操作</th></tr></thead><tbody id="topicTable"></tbody></table></div>
     </div>
   </div>
 </div>
@@ -364,6 +364,32 @@ const STORAGE_KEY = 'scx_mobile_v2';
 // Same data layer as mobile PWA
 let DB = loadData();
 
+function getDefaultKB() {
+  return {
+    mech:{title:'机械制造学习',icon:'🔧',desc:'CNC编程 · 加工工艺 · 材料知识 · 刀具选择',sections:[
+      {h:'G代码速查',items:['G00 快速定位 (G0 X100 Y50)','G01 直线插补 (G1 X100 Y50 F200)','G02/G03 顺/逆时针圆弧','G17/G18/G19 XY/YZ/ZX平面选择','G20/G21 英制/公制','G28 返回参考点','G41/G42 刀具半径左/右补偿','G43 刀具长度补偿 (+H_)','G54-G59 工件坐标系','G80 取消固定循环','G81-G89 钻孔/攻丝/镗孔循环','G90/G91 绝对/增量编程','G94/G95 每分/每转进给','M00 程序暂停 / M01 选择停止','M03/M04 主轴正/反转 / M05 主轴停止','M06 换刀 / M08/M09 冷却液开/关','M30 程序结束并返回']},
+      {h:'常用材料加工参数',items:['铝合金 6061: Vc=300-500m/min, F=0.1-0.2mm/r, 干式或乳化液','不锈钢 304: Vc=80-150m/min, F=0.05-0.15mm/r, 必须用冷却液','45#钢: Vc=120-200m/min, F=0.08-0.2mm/r, 乳化液','黄铜 H62: Vc=200-300m/min, F=0.1-0.15mm/r, 可干式','POM/尼龙: Vc=150-300m/min, F=0.1-0.2mm/r, 干式','钛合金 TC4: Vc=40-80m/min, F=0.05-0.1mm/r, 大量冷却液','硬铝 7075: Vc=200-400m/min, F=0.08-0.15mm/r','球墨铸铁: Vc=80-150m/min, F=0.1-0.2mm/r, 干式或微润']},
+      {h:'刀具选择',items:['D6-D10 硬质合金立铣刀: 通用加工、铝合金、不锈钢','D10-D20 玉米铣刀: 大平面粗加工、效率高','球头刀 R3-R6: 型腔精加工、3D曲面','牛鼻刀: 半精加工、斜面、型腔侧壁','钻头: 中心钻定位(2-3mm)→麻花钻→镗孔','丝锥: 攻丝前底孔 = 公称直径 - 螺距','涂层: TiAlN(高温合金)、AlCrN(不锈钢)、DLC(铝)、金刚石(石墨/碳纤维)','刀柄: BT30/BT40(国产)、HSK63(高速)、ER弹簧夹头']},
+      {h:'加工工艺路线',items:['工序1: 毛坯检验 → 划线(必要时)','工序2: 粗铣大平面 → 留余量0.5mm','工序3: 粗铣外形/型腔 → 留余量0.3mm','工序4: 钻孔、攻丝、镗孔','工序5: 精铣外形/型腔 → 达图要求','工序6: 钳工去毛刺、研磨','工序7: 质检(三坐标/卡尺/粗糙度仪)','工序8: 表面处理(阳极/电镀/喷涂)']},
+      {h:'常见缺陷对策',items:['尺寸超差: 检查刀具补偿、磨损、装夹、热变形','表面粗糙度差: 降切削速度、提进给、换新刀、调整冷却','振动/振纹: 减小径向切深、降低主轴转速、加固装夹','毛刺多: 优化切削参数、调整走刀方向、增加倒角刀','工件变形: 粗精分开、对称加工、热处理后加工','刀具崩刃: 降切削量、检查工件硬度、避开硬点']}
+    ]},
+    work:{title:'工作知识库',icon:'📋',desc:'公司流程 · 管理制度 · 安全规程 · 报价标准',sections:[
+      {h:'生产管理流程',items:['1. 客户询价 → 技术评估 → 报价单','2. 合同签订 → 收预付款(30-50%)','3. 工艺编制 → 程序编写 → 刀具准备','4. 毛坯采购 / 现有库存','5. 粗加工 → 质检(过程)','6. 精加工 → 终检(全尺寸)','7. 表面处理(委外) → 包装','8. 客户验收 → 尾款结算','9. 质量回访 → 客户档案更新']},
+      {h:'设备保养制度',items:['日常: 清洁、润滑点检查、冷却液位、滤网','每周: 导轨润滑、油雾器加油、气源排水','每月: 液压油位、电气柜清洁、皮带张力','每季: 主轴轴承异响、伺服电机温度、精度检测','每年: 大修(导轨研磨、丝杠检测、几何精度复检)','CNC: 主轴运行5000h必换轴承','注塑机: 模板平行度每季检测、合模力每年校准','火花机: 每天换工作液、每月清理过滤芯']},
+      {h:'安全生产规程',items:['操作前必读: 设备操作规程、SOP','必须穿戴: 护目镜、防砸鞋、紧身工作服','严禁: 戴手套操作旋转设备、女工长发不束','开机前: 检查急停按钮、空运行测试','运行中: 不开防护门、不量活、不调整刀具','断电: 维修保养前必断电挂牌','消防: 灭火器每季检查、通道严禁堵塞','工伤: 24h内上报、流程拍照取证']},
+      {h:'报价标准参考',items:['CNC加工费 = 工时 × 设备折旧 + 刀具耗材','三轴CNC工时费: ¥80-150/小时(含人工)','五轴CNC工时费: ¥200-400/小时','模具材料费 = 钢料重量 × 单价(模具钢¥25-60/kg)','表面处理: 阳极¥8-20/件(批)、电镀¥5-15/件','检验费: 全检按工时计、外协三坐标¥200-500/件','加急费: 标准 1.3-1.5 倍','最低订单: 不少于工时2小时 / 不低于¥300']},
+      {h:'质量检验流程',items:['首件检验: 新产品/换刀后必检','自检: 操作员每5-10件抽检','巡检: 质检员每2h抽检(关键尺寸)','末件检验: 批次完成全检','不合格: 隔离标识 → 返工/让步接收/报废','记录: 检验报告归档、保留3年','客户投诉: 8h响应、24h初步分析、72h解决方案']}
+    ]},
+    tech:{title:'技术知识库',icon:'⚙️',desc:'模具设计 · 注塑工艺 · 质量标准 · 表面处理',sections:[
+      {h:'注塑模具设计要点',items:['分型面: 尽量在产品轮廓线上、便于脱模','浇口: 大产品侧浇口、小产品点浇口、薄壁潜水口','冷却水路: 距型腔壁距离 = 3D(D为水管直径)','顶出: 顶针/司筒/推板, 数量按面积计算','排气: 型腔末端、分型面, 深度0.01-0.03mm','拔模斜度: 0.5°-1.5°(外观件1°+)','壁厚: 均匀, 差异不超过25%','加强筋: 厚度 = 壁厚 × 0.5-0.7','R角: 内R≥壁厚×0.3, 外R≥壁厚×0.5']},
+      {h:'常用塑料注塑参数',items:['ABS: 料筒180-220°C, 模温60-80°C, 注射压力80-100MPa','PP: 料筒180-240°C, 模温30-60°C, 压力60-90MPa','PC: 料筒260-310°C, 模温80-100°C, 压力80-120MPa','PA66(尼龙): 料筒260-290°C, 模温60-100°C, 压力80-110MPa','POM: 料筒180-210°C, 模温80-100°C, 压力80-110MPa','PMMA(亚克力): 料筒190-230°C, 模温40-60°C','PBT: 料筒230-260°C, 模温60-80°C','干燥: ABS 80°C×2h, PC 120°C×4h, PA66 80°C×8h']},
+      {h:'注塑缺陷对策',items:['缺料: 提料温、提射速、提射压、加大浇口','飞边: 降锁模力、降低料温/模温、清理分型面','缩水: 加大保压、提保压时间、加大冷却、加厚壁','银纹: 充分干燥原料、降剪切、提模温','熔接线: 提模温、提料温、改浇口位置、设冷料井','变形: 延长冷却、降模温、检查顶出平衡','气泡: 调整保压切换点、提料温、检查排气','黑点/焦烧: 清料筒、提背压、降射速']},
+      {h:'表面处理标准',items:['阳极氧化(铝): 膜厚5-25μm, 盐雾48-1000h, 染色可选','硬质阳极: 膜厚25-150μm, 硬度HV300-500','电镀锌: 蓝白/彩锌/黑锌, 盐雾24-96h','电镀镍: 装饰镀/功能镀, 厚度5-25μm','电镀铬: 装饰/硬铬(磨具), 硬铬HV800-1000','喷涂: 静电喷粉60-80μm / 喷漆15-25μm','喷砂: 表面粗化、除锈、亚光效果','抛光: 镜面Ra<0.025μm(模具)、Ra<0.4μm(产品)','发黑: 钢铁氧化膜, 防锈+装饰, 盐雾<4h']},
+      {h:'质量检测标准',items:['尺寸公差: 一般±0.1mm, 精密±0.05mm, 高精密±0.01mm','形位公差: 图纸标注, 垂直度/平行度/圆度/同轴度','表面粗糙度: 粗加工Ra3.2, 半精Ra1.6, 精Ra0.8, 镜面Ra0.05','三坐标: 关键尺寸100%或抽样, 报告归档','硬度: 模具HRC58-62, 产品按图要求','盐雾测试: 镀层耐腐蚀性, 中性盐雾5%NaCl','附着力: 百格测试(3M胶带), 涂层≥4B','材质报告: 钢厂质保书+必要时光谱复检']}
+    ]}
+  };
+}
+
 function getDefaultData() {
   const t = new Date().toISOString().slice(0,10);
   return {
@@ -383,6 +409,7 @@ function getDefaultData() {
     remixIdeas:[{id:1,date:t,source:'抖音@机械大神',original:'CNC五轴加工航空件',idea:'用三轴CNC加工类似零件，对比五轴和三轴效率差异',plt:'抖音',status:'待执行'}],
     monthlyAnalysis:{lastGenerated:'',months:{}},
     profile:{name:'',role:'管理员',phone:'',email:'',company:'蜀川鑫工作室',avatar:''},
+    kbData:getDefaultKB(),
     nid:{project:5,customer:4,employee:5,equipment:5,finance:6,account:5,topic:4,todo:7,log:2,mdata:5,hotVideo:3,advice:3,remix:2,transaction:9}
   };
 }
@@ -390,7 +417,12 @@ function getDefaultData() {
 function loadData() {
   try {
     const s = localStorage.getItem(STORAGE_KEY);
-    if (s) { const d = JSON.parse(s); return d; }
+    if (s) {
+      const d = JSON.parse(s);
+      const def = getDefaultData();
+      for(const k in def) { if(!(k in d)) d[k] = def[k]; }
+      return d;
+    }
   } catch(e) {}
   return getDefaultData();
 }
@@ -542,14 +574,14 @@ function renderProjects() {
   document.getElementById('kanbanBoard').innerHTML = Object.entries(statuses).map(([k,v])=>`
     <div class="kanban-col"><h4>${v} <span class="badge ${k==='done'?'badge-green':k==='produce'?'badge-blue':k==='qc'?'badge-amber':'badge-gray'}">${DB.projects.filter(p=>p.status===k).length}</span></h4>
       ${DB.projects.filter(p=>p.status===k).map(p=>`
-        <div class="kanban-card" style="border-left-color:${colors[k]}"><h5>${p.name}</h5><p>客户：${p.client} · ¥${(p.budget||0).toLocaleString()}</p><p>截止：${p.deadline}${p.notes?' · '+p.notes:''}</p><div class="kc-meta"><div class="progress-bar" style="flex:1;margin-right:8px;"><div class="progress-fill" style="width:${p.progress||0}%"></div></div><span>${p.progress||0}%</span></div><div class="kc-actions">${k!=='done'?`<button class="btn btn-sm btn-outline" onclick="advanceProject(${p.id})">推进</button>`:''}<button class="btn btn-sm btn-outline" onclick="deleteProject(${p.id})" style="color:#dc2626;">删除</button></div></div>
+        <div class="kanban-card" style="border-left-color:${colors[k]}"><h5>${p.name}</h5><p>客户：${p.client} · ¥${(p.budget||0).toLocaleString()}</p><p>截止：${p.deadline}${p.notes?' · '+p.notes:''}</p><div class="kc-meta"><div class="progress-bar" style="flex:1;margin-right:8px;"><div class="progress-fill" style="width:${p.progress||0}%"></div></div><span>${p.progress||0}%</span></div><div class="kc-actions">${k!=='done'?`<button class="btn btn-sm btn-outline" onclick="advanceProject(${p.id})">推进</button>`:''}<button class="btn btn-sm btn-outline" onclick="openModal('project',${p.id})">编辑</button><button class="btn btn-sm btn-outline" onclick="showProjectDetail(${p.id})">详情</button><button class="btn btn-sm btn-outline" onclick="deleteProject(${p.id})" style="color:#dc2626;">删除</button></div></div>
       `).join('')||'<div style="text-align:center;padding:16px;color:var(--text-light);font-size:11px;">暂无项目</div>'}
     </div>
   `).join('');
 
   document.getElementById('equipmentList').innerHTML = DB.equipment.map(eq=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);"><div><div style="font-size:13px;font-weight:500;">${eq.name} <span style="color:var(--text-light);font-size:11px;">${eq.model}</span></div><div style="font-size:11px;color:var(--text-light);">上次：${eq.last} · 下次：${eq.next}</div></div><span class="badge ${eq.status==='运行中'?'badge-green':eq.status==='维护中'?'badge-amber':'badge-gray'}">${eq.status}</span></div>
-  `).join('');
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);"><div><div style="font-size:13px;font-weight:500;">${eq.name} <span style="color:var(--text-light);font-size:11px;">${eq.model}</span></div><div style="font-size:11px;color:var(--text-light);">上次：${eq.last} · 下次：${eq.next}</div></div><div style="display:flex;gap:4px;align-items:center;"><span class="badge ${eq.status==='运行中'?'badge-green':eq.status==='维护中'?'badge-amber':'badge-gray'}">${eq.status}</span><button class="btn btn-sm btn-outline" onclick="openModal('equipment',${eq.id})">编辑</button><button class="btn btn-sm btn-outline" onclick="deleteEquipment(${eq.id})" style="color:#dc2626;">删除</button></div></div>
+  `).join('')||'<div style="text-align:center;padding:20px;color:var(--text-light);">暂无设备</div>';
 }
 
 function advanceProject(id) {
@@ -558,7 +590,32 @@ function advanceProject(id) {
   if(idx<order.length-1){ p.status = order[idx+1]; p.progress = p.status==='done'?100:(p.progress||0)+25; saveLocal(); renderProjects(); showToast('已推进'); }
 }
 
-function deleteProject(id) { DB.projects=DB.projects.filter(p=>p.id!==id); saveLocal(); renderProjects(); showToast('已删除'); }
+function deleteProject(id) { if(!confirm('确定删除该项目？')) return; DB.projects=DB.projects.filter(p=>p.id!==id); saveLocal(); renderProjects(); showToast('已删除'); }
+
+function showProjectDetail(id) {
+  const p = DB.projects.find(x=>x.id===id); if(!p) return;
+  const statusMap = {quote:'报价中',produce:'生产中',qc:'质检中',done:'已交付'};
+  const ov=document.getElementById('modalOverlay');
+  document.getElementById('modalTitle').textContent = '项目详情';
+  document.getElementById('modalBody').innerHTML = `
+    <div style="font-size:16px;font-weight:700;margin-bottom:12px;">${p.name}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;">
+      <div><span style="color:var(--text-light);">客户：</span>${p.client||'-'}</div>
+      <div><span style="color:var(--text-light);">状态：</span><span class="badge badge-blue">${statusMap[p.status]||p.status}</span></div>
+      <div><span style="color:var(--text-light);">预算：</span>¥${(p.budget||0).toLocaleString()}</div>
+      <div><span style="color:var(--text-light);">截止：</span>${p.deadline||'-'}</div>
+      <div><span style="color:var(--text-light);">进度：</span>${p.progress||0}%</div>
+    </div>
+    <div class="progress-bar" style="margin:12px 0;"><div class="progress-fill" style="width:${p.progress||0}%"></div></div>
+    ${p.notes?`<div style="margin-top:8px;"><span style="color:var(--text-light);font-size:12px;">备注：</span><div style="padding:8px;background:var(--bg);border-radius:6px;font-size:12px;margin-top:4px;">${p.notes}</div></div>`:''}
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;"><button class="btn btn-primary" onclick="closeModal();openModal('project',${p.id})">编辑</button></div>
+  `;
+  document.getElementById('modalSave').style.display='none';
+  document.getElementById('modalSave').onclick = () => {};
+  ov.classList.add('show');
+}
+
+function deleteEquipment(id) { if(!confirm('确定删除该设备？')) return; DB.equipment=DB.equipment.filter(e=>e.id!==id); saveLocal(); renderProjects(); showToast('已删除'); }
 
 // ==================== Finance ====================
 let chartFinMonthInst, chartFinPieInst;
@@ -639,10 +696,11 @@ function renderFinance() {
   }).join('') : '<div style="text-align:center;padding:20px;color:var(--text-light);">暂无支出构成数据</div>';
 
   // Transaction table
-  document.getElementById('financeTable').innerHTML = '<div style="overflow-x:auto;"><table><thead><tr><th>日期</th><th>类型</th><th>来源/用途</th><th>客户</th><th>金额</th><th>备注</th><th>操作</th></tr></thead><tbody>'+[...DB.transactions].reverse().map(t=>`<tr><td>${t.date}</td><td><span class="badge ${t.type==='income'?'badge-green':'badge-red'}">${t.type==='income'?'收入':'支出'}</span></td><td>${t.source}</td><td>${t.client||'-'}</td><td style="font-weight:700;color:${t.type==='income'?'var(--success)':'var(--danger)'};">¥${t.amount.toLocaleString()}</td><td>${t.note||'-'}</td><td><button class="btn btn-sm btn-outline" onclick="event.stopPropagation();deleteTransaction(${t.id})" style="color:#dc2626;">删除</button></td></tr>`).join('')+'</tbody></table></div>';
+  document.getElementById('financeTable').innerHTML = '<div style="overflow-x:auto;"><table><thead><tr><th>日期</th><th>类型</th><th>来源/用途</th><th>客户</th><th>金额</th><th>备注</th><th>操作</th></tr></thead><tbody>'+[...DB.transactions].reverse().map(t=>`<tr><td>${t.date}</td><td><span class="badge ${t.type==='income'?'badge-green':'badge-red'}">${t.type==='income'?'收入':'支出'}</span></td><td>${t.source}</td><td>${t.client||'-'}</td><td style="font-weight:700;color:${t.type==='income'?'var(--success)':'var(--danger)'};">¥${t.amount.toLocaleString()}</td><td>${t.note||'-'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-outline" onclick="event.stopPropagation();openModal('transaction',${t.id})">编辑</button> <button class="btn btn-sm btn-outline" onclick="event.stopPropagation();deleteTransaction(${t.id})" style="color:#dc2626;">删除</button></td></tr>`).join('')+'</tbody></table></div>';
 }
 
-function deleteTransaction(id) { DB.transactions=DB.transactions.filter(t=>t.id!==id); saveLocal(); renderFinance(); showToast('已删除'); }
+function deleteTransaction(id) { if(!confirm('确定删除该流水？')) return; DB.transactions=DB.transactions.filter(t=>t.id!==id); saveLocal(); renderFinance(); showToast('已删除'); }
+function deleteTopic(id) { if(!confirm('确定删除该选题？')) return; DB.topics=DB.topics.filter(t=>t.id!==id); saveLocal(); renderMedia(); showToast('已删除'); }
 
 function editFinanceMonth(month){
   const f=DB.finance.find(x=>x.month===month);if(!f)return;
@@ -679,16 +737,16 @@ function editFinanceMonth(month){
 // ==================== Customers ====================
 function renderCustomers() {
   document.getElementById('customerTable').innerHTML = DB.customers.map(c=>`
-    <tr><td><strong>${c.name}</strong></td><td>${c.company||'-'}</td><td>${c.phone}</td><td>${c.orders||0}</td><td>¥${(c.amount||0).toLocaleString()}</td><td style="color:#16a34a;font-weight:600;">¥${(c.paid||0).toLocaleString()}</td><td style="color:#dc2626;font-weight:600;">¥${(c.unpaid||0).toLocaleString()}</td><td><button class="btn btn-sm btn-outline" onclick="deleteCustomer(${c.id})" style="color:#dc2626;">删除</button></td></tr>
+    <tr><td><strong>${c.name}</strong></td><td>${c.company||'-'}</td><td>${c.phone}</td><td>${c.orders||0}</td><td>¥${(c.amount||0).toLocaleString()}</td><td style="color:#16a34a;font-weight:600;">¥${(c.paid||0).toLocaleString()}</td><td style="color:#dc2626;font-weight:600;">¥${(c.unpaid||0).toLocaleString()}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-outline" onclick="openModal('customer',${c.id})">编辑</button> <button class="btn btn-sm btn-outline" onclick="deleteCustomer(${c.id})" style="color:#dc2626;">删除</button></td></tr>
   `).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text-light);">暂无客户</td></tr>';
 
   document.getElementById('employeeTable').innerHTML = DB.employees.map(e=>`
-    <tr><td><strong>${e.name}</strong></td><td>${e.role}</td><td>${e.phone}</td><td><span class="badge ${e.status==='在岗'?'badge-green':'badge-gray'}">${e.status}</span></td><td>${e.task||'-'}</td><td><button class="btn btn-sm btn-outline" onclick="deleteEmployee(${e.id})" style="color:#dc2626;">删除</button></td></tr>
+    <tr><td><strong>${e.name}</strong></td><td>${e.role}</td><td>${e.phone}</td><td><span class="badge ${e.status==='在岗'?'badge-green':'badge-gray'}">${e.status}</span></td><td>${e.task||'-'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-outline" onclick="openModal('employee',${e.id})">编辑</button> <button class="btn btn-sm btn-outline" onclick="deleteEmployee(${e.id})" style="color:#dc2626;">删除</button></td></tr>
   `).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-light);">暂无员工</td></tr>';
 }
 
-function deleteCustomer(id) { DB.customers=DB.customers.filter(c=>c.id!==id); saveLocal(); renderCustomers(); showToast('已删除'); }
-function deleteEmployee(id) { DB.employees=DB.employees.filter(e=>e.id!==id); saveLocal(); renderCustomers(); showToast('已删除'); }
+function deleteCustomer(id) { if(!confirm('确定删除该客户？')) return; DB.customers=DB.customers.filter(c=>c.id!==id); saveLocal(); renderCustomers(); showToast('已删除'); }
+function deleteEmployee(id) { if(!confirm('确定删除该员工？')) return; DB.employees=DB.employees.filter(e=>e.id!==id); saveLocal(); renderCustomers(); showToast('已删除'); }
 
 // ==================== Media ====================
 let chartMediaDailyInst;
@@ -734,8 +792,8 @@ function renderMedia() {
   `).join('')||'<div style="text-align:center;padding:20px;color:var(--text-light);">暂无建议</div>';
 
   document.getElementById('topicTable').innerHTML = DB.topics.map(t=>`
-    <tr><td>${t.date}</td><td>${t.plt}</td><td>${t.topic}</td><td>${t.type}</td><td><span class="badge ${t.status==='已发布'?'badge-green':t.status==='待拍摄'?'badge-amber':'badge-blue'}">${t.status}</span></td></tr>
-  `).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--text-light);">暂无选题</td></tr>';
+    <tr><td>${t.date}</td><td>${t.plt}</td><td>${t.topic}</td><td>${t.type}</td><td><span class="badge ${t.status==='已发布'?'badge-green':t.status==='待拍摄'?'badge-amber':'badge-blue'}">${t.status}</span></td><td style="white-space:nowrap;"><button class="btn btn-sm btn-outline" onclick="openModal('topic',${t.id})">编辑</button> <button class="btn btn-sm btn-outline" onclick="deleteTopic(${t.id})" style="color:#dc2626;">删除</button></td></tr>
+  `).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-light);">暂无选题</td></tr>';
 
   if(chartMediaDailyInst) chartMediaDailyInst.destroy();
   const c3 = document.getElementById('chartMediaDaily'); if(c3){
@@ -748,11 +806,12 @@ function renderMedia() {
 
 // ==================== Knowledge ====================
 function renderKnowledge() {
-  document.getElementById('kbGrid').innerHTML = `
-    <div class="kb-card" onclick="showKB('mech')"><div class="kb-icon">🔧</div><h4>机械制造学习</h4><p>CNC编程 · 加工工艺 · 材料知识 · G代码</p></div>
-    <div class="kb-card" onclick="showKB('work')"><div class="kb-icon">📋</div><h4>工作知识库</h4><p>公司流程 · 管理制度 · 安全规程</p></div>
-    <div class="kb-card" onclick="showKB('tech')"><div class="kb-icon">⚙️</div><h4>技术知识库</h4><p>模具设计 · 注塑工艺 · 表面处理</p></div>
-  `;
+  const kb = DB.kbData || getDefaultKB();
+  let html = Object.entries(kb).map(([key,d])=>`
+    <div class="kb-card" onclick="showKB('${key}')"><div class="kb-icon">${d.icon}</div><h4>${d.title}</h4><p>${d.desc||''}</p></div>
+  `).join('');
+  html += `<div class="kb-card" onclick="addKBCategory()" style="display:flex;align-items:center;justify-content:center;border-style:dashed;"><div><div class="kb-icon">➕</div><h4>添加分类</h4><p>新建知识库分类</p></div></div>`;
+  document.getElementById('kbGrid').innerHTML = html;
   document.getElementById('kbSearchResults').innerHTML = '';
 }
 
@@ -795,15 +854,82 @@ function searchKB() {
 function showKB(cat) {
   const kb = DB.kbData||{};
   const d = kb[cat]; if(!d) return;
-  let html = '<div class="card"><div class="card-title"><span>'+d.icon+' '+d.title+'</span><button class="btn btn-outline btn-sm" onclick="renderKnowledge()">返回</button></div>';
-  if(d.sections) d.sections.forEach(s=>{
-    html += '<div style="margin-bottom:12px;"><h4 style="font-size:13px;font-weight:600;margin-bottom:6px;">📌 '+s.h+'</h4>';
-    s.items.forEach(it=>{ html += '<div style="padding:6px 10px;font-size:12px;border-bottom:1px solid var(--border);">'+it+'</div>'; });
+  let html = '<div class="card"><div class="card-title"><span>'+d.icon+' '+d.title+'</span><div style="display:flex;gap:6px;"><button class="btn btn-primary btn-sm" onclick="addKBSection(\''+cat+'\')">+ 添加章节</button><button class="btn btn-outline btn-sm" onclick="renderKnowledge()">返回</button></div></div>';
+  if(d.desc) html += '<p style="font-size:12px;color:var(--text-light);margin-bottom:12px;">'+d.desc+'</p>';
+  if(d.sections) d.sections.forEach((s,si)=>{
+    html += '<div style="margin-bottom:16px;padding:12px;border:1px solid var(--border);border-radius:8px;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;"><h4 style="font-size:13px;font-weight:600;">📌 '+s.h+'</h4><div style="display:flex;gap:4px;"><button class="btn btn-sm btn-outline" onclick="editKBItem(\''+cat+'\','+si+',-1)" style="padding:2px 8px;font-size:11px;">+ 条目</button><button class="btn btn-sm btn-outline" onclick="delKBSection(\''+cat+'\','+si+')" style="padding:2px 8px;font-size:11px;color:#dc2626;">🗑️ 章节</button></div></div>';
+    s.items.forEach((it,ii)=>{
+      html += '<div style="padding:6px 10px;font-size:12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="flex:1;">'+it+'</span><div style="display:flex;gap:4px;flex-shrink:0;"><button class="btn btn-sm btn-outline" onclick="editKBItem(\''+cat+'\','+si+','+ii+')" style="padding:2px 6px;font-size:11px;">✏️</button><button class="btn btn-sm btn-outline" onclick="delKBItem(\''+cat+'\','+si+','+ii+')" style="padding:2px 6px;font-size:11px;color:#dc2626;">🗑️</button></div></div>';
+    });
+    if(s.items.length===0) html += '<div style="padding:6px 10px;font-size:11px;color:var(--text-light);">暂无条目</div>';
     html += '</div>';
   });
   html += '</div>';
   document.getElementById('kbGrid').innerHTML = html;
   document.getElementById('kbSearchResults').innerHTML = '';
+}
+
+function editKBItem(cat,si,ii) {
+  const d = DB.kbData[cat]; if(!d) return;
+  const sec = d.sections[si]; if(!sec) return;
+  const isAdd = (ii === -1);
+  const existing = isAdd ? '' : (sec.items[ii]||'');
+  const ov=document.getElementById('modalOverlay');
+  document.getElementById('modalTitle').textContent = isAdd ? '添加条目到「'+sec.h+'」' : '编辑条目';
+  document.getElementById('modalBody').innerHTML = '<div class="form-group"><label>条目内容</label><textarea id="f_kb_item" rows="3">'+existing+'</textarea></div>';
+  document.getElementById('modalSave').onclick = () => {
+    const v = fv('f_kb_item').trim();
+    if(!v) return showToast('请输入内容');
+    if(isAdd) { sec.items.push(v); } else { sec.items[ii] = v; }
+    saveLocal(); showKB(cat); closeModal(); showToast(isAdd?'已添加':'已更新');
+  };
+  ov.classList.add('show');
+}
+
+function delKBItem(cat,si,ii) {
+  if(!confirm('确定删除该条目？')) return;
+  const d = DB.kbData[cat]; if(!d) return;
+  const sec = d.sections[si]; if(!sec) return;
+  sec.items.splice(ii,1);
+  saveLocal(); showKB(cat); showToast('已删除');
+}
+
+function delKBSection(cat,si) {
+  if(!confirm('确定删除整个章节（含所有条目）？')) return;
+  const d = DB.kbData[cat]; if(!d) return;
+  d.sections.splice(si,1);
+  saveLocal(); showKB(cat); showToast('章节已删除');
+}
+
+function addKBSection(cat) {
+  const d = DB.kbData[cat]; if(!d) return;
+  const ov=document.getElementById('modalOverlay');
+  document.getElementById('modalTitle').textContent = '添加章节';
+  document.getElementById('modalBody').innerHTML = '<div class="form-group"><label>章节标题</label><input id="f_kb_section_h"></div>';
+  document.getElementById('modalSave').onclick = () => {
+    const h = fv('f_kb_section_h').trim();
+    if(!h) return showToast('请输入标题');
+    d.sections.push({h:h,items:[]});
+    saveLocal(); showKB(cat); closeModal(); showToast('章节已添加');
+  };
+  ov.classList.add('show');
+}
+
+function addKBCategory() {
+  const ov=document.getElementById('modalOverlay');
+  document.getElementById('modalTitle').textContent = '添加知识库分类';
+  document.getElementById('modalBody').innerHTML = '<div class="form-row"><div class="form-group"><label>分类标识(英文)</label><input id="f_kb_key" placeholder="如: quality"></div><div class="form-group"><label>图标</label><input id="f_kb_icon" value="📚"></div></div><div class="form-group"><label>标题</label><input id="f_kb_title"></div><div class="form-group"><label>描述</label><input id="f_kb_desc"></div>';
+  document.getElementById('modalSave').onclick = () => {
+    const key = fv('f_kb_key').trim();
+    const icon = fv('f_kb_icon').trim()||'📚';
+    const title = fv('f_kb_title').trim();
+    const desc = fv('f_kb_desc').trim();
+    if(!key||!title) return showToast('请填写分类标识和标题');
+    if(DB.kbData[key]) return showToast('该标识已存在');
+    DB.kbData[key] = {title:title,icon:icon,desc:desc,sections:[]};
+    saveLocal(); renderKnowledge(); closeModal(); showToast('分类已添加');
+  };
+  ov.classList.add('show');
 }
 
 // ==================== Personal ====================
@@ -820,11 +946,11 @@ function renderPersonal() {
   else if(filter==='high') items=items.filter(t=>t.pri==='high');
 
   document.getElementById('todoList').innerHTML = items.length ? items.map(t=>`
-    <div class="todo-item ${t.status==='done'?'done':''}"><input type="checkbox" class="todo-checkbox" ${t.status==='done'?'checked':''} onchange="toggleTodo(${t.id})"><div class="todo-text">${t.txt}<div style="font-size:10px;color:var(--text-light);">${t.cat} · ${t.due}</div></div><span class="badge ${t.pri==='high'?'badge-red':t.pri==='medium'?'badge-amber':'badge-gray'}">${t.pri==='high'?'紧急':t.pri==='medium'?'重要':'一般'}</span><button class="btn btn-sm btn-outline" onclick="deleteTodo(${t.id})" style="color:#dc2626;">删除</button></div>
+    <div class="todo-item ${t.status==='done'?'done':''}"><input type="checkbox" class="todo-checkbox" ${t.status==='done'?'checked':''} onchange="toggleTodo(${t.id})"><div class="todo-text">${t.txt}<div style="font-size:10px;color:var(--text-light);">${t.cat} · ${t.due}</div></div><span class="badge ${t.pri==='high'?'badge-red':t.pri==='medium'?'badge-amber':'badge-gray'}">${t.pri==='high'?'紧急':t.pri==='medium'?'重要':'一般'}</span><button class="btn btn-sm btn-outline" onclick="openModal('todo',${t.id})">编辑</button><button class="btn btn-sm btn-outline" onclick="deleteTodo(${t.id})" style="color:#dc2626;">删除</button></div>
   `).join('') : '<div style="text-align:center;padding:20px;color:var(--text-light);">暂无待办</div>';
 
   document.getElementById('logList').innerHTML = DB.logs.length ? [...DB.logs].reverse().map(l=>`
-    <div style="padding:10px;border-bottom:1px solid var(--border);"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:12px;font-weight:600;">${l.date}</span><span class="badge badge-gray">${l.mood}</span></div><p style="font-size:12px;line-height:1.6;">${l.content}</p></div>
+    <div style="padding:10px;border-bottom:1px solid var(--border);"><div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:12px;font-weight:600;">${l.date}</span><div style="display:flex;gap:4px;align-items:center;"><span class="badge badge-gray">${l.mood}</span><button class="btn btn-sm btn-outline" onclick="openModal('log',${l.id})" style="padding:2px 8px;font-size:11px;">编辑</button><button class="btn btn-sm btn-outline" onclick="deleteLog(${l.id})" style="padding:2px 8px;font-size:11px;color:#dc2626;">删除</button></div></div><p style="font-size:12px;line-height:1.6;">${l.content}</p></div>
   `).join('') : '<div style="text-align:center;padding:20px;color:var(--text-light);">暂无日志</div>';
 
   const n = new Date(), dow = (n.getDay()+6)%7;
@@ -840,7 +966,8 @@ function renderPersonal() {
 }
 
 function toggleTodo(id) { const t=DB.todos.find(x=>x.id===id); if(t){t.status=t.status==='done'?'pending':'done';saveLocal();renderPersonal();} }
-function deleteTodo(id) { DB.todos=DB.todos.filter(t=>t.id!==id); saveLocal(); renderPersonal(); showToast('已删除'); }
+function deleteTodo(id) { if(!confirm('确定删除该待办？')) return; DB.todos=DB.todos.filter(t=>t.id!==id); saveLocal(); renderPersonal(); showToast('已删除'); }
+function deleteLog(id) { if(!confirm('确定删除该日志？')) return; DB.logs=DB.logs.filter(l=>l.id!==id); saveLocal(); renderPersonal(); showToast('已删除'); }
 
 // ==================== Modal ====================
 function openModal(type, editId) {
@@ -848,32 +975,32 @@ function openModal(type, editId) {
   const today=new Date().toISOString().slice(0,10);
   const isEdit = !!editId;
   const forms = {
-    project:{title:'新建项目',html:`
+    project:{title:isEdit?'编辑项目':'新建项目',html:`
       <div class="form-group"><label>项目名称</label><input id="f_name"></div>
       <div class="form-row"><div class="form-group"><label>客户</label><input id="f_client"></div><div class="form-group"><label>预算</label><input id="f_budget" type="number" value="0"></div></div>
       <div class="form-row"><div class="form-group"><label>状态</label><select id="f_status"><option value="quote">报价中</option><option value="produce">生产中</option><option value="qc">质检中</option><option value="done">已交付</option></select></div><div class="form-group"><label>截止日期</label><input id="f_deadline" type="date"></div></div>
       <div class="form-group"><label>备注</label><textarea id="f_notes" rows="2"></textarea></div>
-    `,save:()=>{ const p={id:DB.nid.project++,name:fv('f_name'),client:fv('f_client'),status:fv('f_status'),deadline:fv('f_deadline'),budget:+fv('f_budget')||0,progress:fv('f_status')==='done'?100:0,notes:fv('f_notes')}; if(!p.name) return showToast('请输入项目名称'); DB.projects.push(p); saveLocal(); renderProjects(); showToast('项目已添加'); }},
-    customer:{title:'添加客户',html:`
+    `,save:()=>{ const p={name:fv('f_name'),client:fv('f_client'),status:fv('f_status'),deadline:fv('f_deadline'),budget:+fv('f_budget')||0,notes:fv('f_notes')}; if(!p.name) return showToast('请输入项目名称'); if(isEdit){ const idx=DB.projects.findIndex(x=>x.id===editId); if(idx>=0){ p.progress=DB.projects[idx].progress; if(p.status==='done') p.progress=100; DB.projects[idx]={...DB.projects[idx],...p}; } } else { p.id=DB.nid.project++; p.progress=p.status==='done'?100:0; DB.projects.push(p); } saveLocal(); renderProjects(); showToast(isEdit?'项目已更新':'项目已添加'); }},
+    customer:{title:isEdit?'编辑客户':'添加客户',html:`
       <div class="form-row"><div class="form-group"><label>姓名</label><input id="f_name"></div><div class="form-group"><label>公司</label><input id="f_company"></div></div>
       <div class="form-row"><div class="form-group"><label>电话</label><input id="f_phone"></div><div class="form-group"><label>累计金额</label><input id="f_amount" type="number" value="0"></div></div>
       <div class="form-row"><div class="form-group"><label>已付款 ¥</label><input id="f_paid" type="number" value="0"></div><div class="form-group"><label>未付款 ¥</label><input id="f_unpaid" type="number" value="0"></div></div>
-    `,save:()=>{ const c={id:DB.nid.customer++,name:fv('f_name'),company:fv('f_company'),phone:fv('f_phone'),orders:0,amount:+fv('f_amount')||0,contact:today,paid:+fv('f_paid')||0,unpaid:+fv('f_unpaid')||0}; if(!c.name) return showToast('请输入客户姓名'); DB.customers.push(c); saveLocal(); renderCustomers(); showToast('客户已添加'); }},
-    employee:{title:'添加员工',html:`
+    `,save:()=>{ const c={name:fv('f_name'),company:fv('f_company'),phone:fv('f_phone'),amount:+fv('f_amount')||0,paid:+fv('f_paid')||0,unpaid:+fv('f_unpaid')||0}; if(!c.name) return showToast('请输入客户姓名'); if(isEdit){ const idx=DB.customers.findIndex(x=>x.id===editId); if(idx>=0){ DB.customers[idx]={...DB.customers[idx],...c}; } } else { c.id=DB.nid.customer++; c.orders=0; c.contact=today; DB.customers.push(c); } saveLocal(); renderCustomers(); showToast(isEdit?'客户已更新':'客户已添加'); }},
+    employee:{title:isEdit?'编辑员工':'添加员工',html:`
       <div class="form-row"><div class="form-group"><label>姓名</label><input id="f_name"></div><div class="form-group"><label>岗位</label><input id="f_role"></div></div>
       <div class="form-row"><div class="form-group"><label>电话</label><input id="f_phone"></div><div class="form-group"><label>状态</label><select id="f_status"><option>在岗</option><option>休假</option><option>离职</option></select></div></div>
       <div class="form-group"><label>当前任务</label><input id="f_task"></div>
-    `,save:()=>{ const e={id:DB.nid.employee++,name:fv('f_name'),role:fv('f_role'),phone:fv('f_phone'),status:fv('f_status'),task:fv('f_task')||'-'}; if(!e.name) return showToast('请输入姓名'); DB.employees.push(e); saveLocal(); renderCustomers(); showToast('员工已添加'); }},
-    equipment:{title:'添加设备',html:`
+    `,save:()=>{ const e={name:fv('f_name'),role:fv('f_role'),phone:fv('f_phone'),status:fv('f_status'),task:fv('f_task')||'-'}; if(!e.name) return showToast('请输入姓名'); if(isEdit){ const idx=DB.employees.findIndex(x=>x.id===editId); if(idx>=0){ DB.employees[idx]={...DB.employees[idx],...e}; } } else { e.id=DB.nid.employee++; DB.employees.push(e); } saveLocal(); renderCustomers(); showToast(isEdit?'员工已更新':'员工已添加'); }},
+    equipment:{title:isEdit?'编辑设备':'添加设备',html:`
       <div class="form-row"><div class="form-group"><label>设备名</label><input id="f_name"></div><div class="form-group"><label>型号</label><input id="f_model"></div></div>
       <div class="form-row"><div class="form-group"><label>状态</label><select id="f_status"><option>运行中</option><option>维护中</option><option>停机</option></select></div></div>
       <div class="form-row"><div class="form-group"><label>上次维护</label><input id="f_last" type="date"></div><div class="form-group"><label>下次维护</label><input id="f_next" type="date"></div></div>
-    `,save:()=>{ const e={id:DB.nid.equipment++,name:fv('f_name'),model:fv('f_model'),status:fv('f_status'),last:fv('f_last'),next:fv('f_next')}; if(!e.name) return showToast('请输入设备名'); DB.equipment.push(e); saveLocal(); renderProjects(); showToast('设备已添加'); }},
-    transaction:{title:'记一笔流水',html:`
+    `,save:()=>{ const e={name:fv('f_name'),model:fv('f_model'),status:fv('f_status'),last:fv('f_last'),next:fv('f_next')}; if(!e.name) return showToast('请输入设备名'); if(isEdit){ const idx=DB.equipment.findIndex(x=>x.id===editId); if(idx>=0){ DB.equipment[idx]={...DB.equipment[idx],...e}; } } else { e.id=DB.nid.equipment++; DB.equipment.push(e); } saveLocal(); renderProjects(); showToast(isEdit?'设备已更新':'设备已添加'); }},
+    transaction:{title:isEdit?'编辑流水':'记一笔流水',html:`
       <div class="form-row"><div class="form-group"><label>类型</label><select id="f_type"><option value="income">收入</option><option value="expense">支出</option></select></div><div class="form-group"><label>日期</label><input id="f_date" type="date" value="${today}"></div></div>
       <div class="form-row"><div class="form-group"><label>金额</label><input id="f_amount" type="number" value="0"></div><div class="form-group"><label>来源/用途</label><input id="f_source"></div></div>
       <div class="form-row"><div class="form-group"><label>客户(收入时)</label><input id="f_client"></div><div class="form-group"><label>备注</label><input id="f_note"></div></div>
-    `,save:()=>{ const t={id:DB.nid.transaction++,date:fv('f_date'),type:fv('f_type'),amount:+fv('f_amount')||0,source:fv('f_source'),client:fv('f_client'),note:fv('f_note')}; if(!t.source) return showToast('请输入来源/用途'); DB.transactions.push(t); saveLocal(); renderFinance(); showToast('流水已记录'); }},
+    `,save:()=>{ const t={date:fv('f_date'),type:fv('f_type'),amount:+fv('f_amount')||0,source:fv('f_source'),client:fv('f_client'),note:fv('f_note')}; if(!t.source) return showToast('请输入来源/用途'); if(isEdit){ const idx=DB.transactions.findIndex(x=>x.id===editId); if(idx>=0){ DB.transactions[idx]={...DB.transactions[idx],...t}; } } else { t.id=DB.nid.transaction++; DB.transactions.push(t); } saveLocal(); renderFinance(); showToast(isEdit?'流水已更新':'流水已记录'); }},
     bulkFinance:{title:'录入历史月度数据',html:`
       <div style="font-size:12px;color:var(--text-light);margin-bottom:10px;">可一次性录入多个月份的财务数据，已有月份将更新</div>
       <div class="form-group"><label>月份列表（每行一个，格式: 2026-01,收入,支出）</label><textarea id="f_bulkfin" rows="8" placeholder="2026-03,86000,52000&#10;2026-04,92000,58000&#10;2026-05,105000,61000&#10;格式：月份,收入金额,支出金额"></textarea></div>
@@ -898,26 +1025,26 @@ function openModal(type, editId) {
       <div class="form-row"><div class="form-group"><label>标题</label><input id="f_title"></div><div class="form-group"><label>分类</label><select id="f_cat"><option>发布策略</option><option>平台策略</option><option>内容方向</option><option>涨粉技巧</option><option>其他</option></select></div></div>
       <div class="form-group"><label>内容</label><textarea id="f_content" rows="3"></textarea></div>
     `,save:()=>{ const a={title:fv('f_title'),cat:fv('f_cat'),content:fv('f_content')}; if(!a.title) return showToast('请输入标题'); if(isEdit){ const idx=DB.mediaAdvice.findIndex(x=>x.id===editId); if(idx>=0){ DB.mediaAdvice[idx]={...DB.mediaAdvice[idx],...a}; } } else { a.id=DB.nid.advice++; a.date=today; DB.mediaAdvice.push(a); } saveLocal(); renderMedia(); showToast(isEdit?'建议已更新':'已添加'); }},
-    topic:{title:'添加选题',html:`
+    topic:{title:isEdit?'编辑选题':'添加选题',html:`
       <div class="form-row"><div class="form-group"><label>平台</label><select id="f_plt"><option>抖音</option><option>快手</option><option>小红书</option><option>B站</option></select></div><div class="form-group"><label>类型</label><select id="f_type"><option>实操展示</option><option>知识分享</option><option>科普对比</option><option>日常vlog</option></select></div></div>
       <div class="form-group"><label>选题</label><input id="f_topic"></div>
       <div class="form-group"><label>状态</label><select id="f_status"><option>选题中</option><option>待拍摄</option><option>已发布</option></select></div>
-    `,save:()=>{ const tp={id:DB.nid.topic++,date:today,plt:fv('f_plt'),topic:fv('f_topic'),type:fv('f_type'),status:fv('f_status')}; if(!tp.topic) return showToast('请输入选题'); DB.topics.push(tp); saveLocal(); renderMedia(); showToast('已添加'); }},
+    `,save:()=>{ const tp={plt:fv('f_plt'),topic:fv('f_topic'),type:fv('f_type'),status:fv('f_status')}; if(!tp.topic) return showToast('请输入选题'); if(isEdit){ const idx=DB.topics.findIndex(x=>x.id===editId); if(idx>=0){ DB.topics[idx]={...DB.topics[idx],...tp}; } } else { tp.id=DB.nid.topic++; tp.date=today; DB.topics.push(tp); } saveLocal(); renderMedia(); showToast(isEdit?'选题已更新':'已添加'); }},
     mediaData:{title:'记录数据',html:`
       <div class="form-row"><div class="form-group"><label>平台</label><select id="f_plt">${DB.accounts.map(a=>'<option>'+a.plt+'</option>').join('')}</select></div><div class="form-group"><label>日期</label><input id="f_date" type="date" value="${today}"></div></div>
       <div class="form-row"><div class="form-group"><label>播放</label><input id="f_views" type="number" value="0"></div><div class="form-group"><label>点赞</label><input id="f_likes" type="number" value="0"></div></div>
       <div class="form-row"><div class="form-group"><label>评论</label><input id="f_cmt" type="number" value="0"></div><div class="form-group"><label>分享</label><input id="f_share" type="number" value="0"></div></div>
       <div class="form-group"><label>新增粉丝</label><input id="f_newf" type="number" value="0"></div>
     `,save:()=>{ DB.mdata.push({id:DB.nid.mdata++,date:fv('f_date'),plt:fv('f_plt'),views:+fv('f_views')||0,likes:+fv('f_likes')||0,cmt:+fv('f_cmt')||0,share:+fv('f_share')||0,newFans:+fv('f_newf')||0}); saveLocal(); renderMedia(); showToast('数据已记录'); }},
-    todo:{title:'新建待办',html:`
+    todo:{title:isEdit?'编辑待办':'新建待办',html:`
       <div class="form-group"><label>内容</label><input id="f_txt"></div>
       <div class="form-row"><div class="form-group"><label>优先级</label><select id="f_pri"><option value="high">紧急</option><option value="medium" selected>重要</option><option value="low">一般</option></select></div><div class="form-group"><label>分类</label><select id="f_cat"><option>经营</option><option>财务</option><option>自媒体</option><option>设备</option><option>个人</option></select></div></div>
       <div class="form-group"><label>截止日期</label><input id="f_due" type="date" value="${today}"></div>
-    `,save:()=>{ const td={id:DB.nid.todo++,txt:fv('f_txt'),pri:fv('f_pri'),status:'pending',due:fv('f_due'),cat:fv('f_cat')}; if(!td.txt) return showToast('请输入内容'); DB.todos.push(td); saveLocal(); renderPersonal(); showToast('待办已添加'); }},
-    log:{title:'写日志',html:`
+    `,save:()=>{ const td={txt:fv('f_txt'),pri:fv('f_pri'),due:fv('f_due'),cat:fv('f_cat')}; if(!td.txt) return showToast('请输入内容'); if(isEdit){ const idx=DB.todos.findIndex(x=>x.id===editId); if(idx>=0){ DB.todos[idx]={...DB.todos[idx],...td}; } } else { td.id=DB.nid.todo++; td.status='pending'; DB.todos.push(td); } saveLocal(); renderPersonal(); showToast(isEdit?'待办已更新':'待办已添加'); }},
+    log:{title:isEdit?'编辑日志':'写日志',html:`
       <div class="form-row"><div class="form-group"><label>日期</label><input id="f_date" type="date" value="${today}"></div><div class="form-group"><label>状态</label><select id="f_mood"><option>正常</option><option>顺利</option><option>忙碌</option><option>困难</option></select></div></div>
       <div class="form-group"><label>内容</label><textarea id="f_content" rows="4"></textarea></div>
-    `,save:()=>{ const l={id:DB.nid.log++,date:fv('f_date'),content:fv('f_content'),mood:fv('f_mood')}; if(!l.content) return showToast('请输入内容'); DB.logs.push(l); saveLocal(); renderPersonal(); showToast('日志已保存'); }},
+    `,save:()=>{ const l={date:fv('f_date'),content:fv('f_content'),mood:fv('f_mood')}; if(!l.content) return showToast('请输入内容'); if(isEdit){ const idx=DB.logs.findIndex(x=>x.id===editId); if(idx>=0){ DB.logs[idx]={...DB.logs[idx],...l}; } } else { l.id=DB.nid.log++; DB.logs.push(l); } saveLocal(); renderPersonal(); showToast(isEdit?'日志已更新':'日志已保存'); }},
     profile:{title:'编辑个人资料',html:`
       <div class="form-row"><div class="form-group"><label>姓名</label><input id="f_pname" value="${DB.profile?.name||AUTH_USER||''}"></div><div class="form-group"><label>职位</label><input id="f_prole" value="${DB.profile?.role||'管理员'}"></div></div>
       <div class="form-row"><div class="form-group"><label>手机</label><input id="f_pphone" value="${DB.profile?.phone||''}"></div><div class="form-group"><label>邮箱</label><input id="f_pemail" value="${DB.profile?.email||''}"></div></div>
@@ -933,11 +1060,20 @@ function openModal(type, editId) {
   };
   const form = forms[type]; if(!form) return;
   t.textContent = form.title; b.innerHTML = form.html;
+  s.style.display='';
   // Fill edit data
-  if(isEdit && (type==='account'||type==='hotVideo'||type==='advice')){
+  if(isEdit){
     if(type==='account'){ const it=DB.accounts.find(x=>x.id===editId); if(it){ setVal('f_plt',it.plt); setVal('f_name',it.name); setVal('f_fans',it.fans); setVal('f_views',it.views); } }
     if(type==='hotVideo'){ const it=DB.hotVideos.find(x=>x.id===editId); if(it){ setVal('f_plt',it.plt); setVal('f_title',it.title); setVal('f_author',it.author); setVal('f_views',it.views); setVal('f_likes',it.likes); setVal('f_note',it.note); } }
     if(type==='advice'){ const it=DB.mediaAdvice.find(x=>x.id===editId); if(it){ setVal('f_title',it.title); setVal('f_cat',it.cat); setVal('f_content',it.content); } }
+    if(type==='project'){ const it=DB.projects.find(x=>x.id===editId); if(it){ setVal('f_name',it.name); setVal('f_client',it.client); setVal('f_budget',it.budget); setVal('f_status',it.status); setVal('f_deadline',it.deadline); setVal('f_notes',it.notes); } }
+    if(type==='customer'){ const it=DB.customers.find(x=>x.id===editId); if(it){ setVal('f_name',it.name); setVal('f_company',it.company); setVal('f_phone',it.phone); setVal('f_amount',it.amount); setVal('f_paid',it.paid); setVal('f_unpaid',it.unpaid); } }
+    if(type==='employee'){ const it=DB.employees.find(x=>x.id===editId); if(it){ setVal('f_name',it.name); setVal('f_role',it.role); setVal('f_phone',it.phone); setVal('f_status',it.status); setVal('f_task',it.task); } }
+    if(type==='equipment'){ const it=DB.equipment.find(x=>x.id===editId); if(it){ setVal('f_name',it.name); setVal('f_model',it.model); setVal('f_status',it.status); setVal('f_last',it.last); setVal('f_next',it.next); } }
+    if(type==='transaction'){ const it=DB.transactions.find(x=>x.id===editId); if(it){ setVal('f_type',it.type); setVal('f_date',it.date); setVal('f_amount',it.amount); setVal('f_source',it.source); setVal('f_client',it.client); setVal('f_note',it.note); } }
+    if(type==='topic'){ const it=DB.topics.find(x=>x.id===editId); if(it){ setVal('f_plt',it.plt); setVal('f_type',it.type); setVal('f_topic',it.topic); setVal('f_status',it.status); } }
+    if(type==='todo'){ const it=DB.todos.find(x=>x.id===editId); if(it){ setVal('f_txt',it.txt); setVal('f_pri',it.pri); setVal('f_cat',it.cat); setVal('f_due',it.due); } }
+    if(type==='log'){ const it=DB.logs.find(x=>x.id===editId); if(it){ setVal('f_date',it.date); setVal('f_mood',it.mood); setVal('f_content',it.content); } }
   }
   s.onclick = () => { form.save(); closeModal(); };
   ov.classList.add('show');
