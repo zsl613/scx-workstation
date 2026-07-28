@@ -372,6 +372,29 @@ function deepMerge(base, incoming) {
   return result;
 }
 
+// ============================================================
+//  DEFAULT ADMIN — ensures an account always exists
+//  (Render free tier restarts wipe the filesystem)
+// ============================================================
+const DEFAULT_ADMIN = process.env.ADMIN_USER || 'admin';
+const DEFAULT_PASS  = process.env.ADMIN_PASS || 'scx888888';
+
+function ensureDefaultAdmin() {
+  const accts = loadAccounts();
+  accts.users = accts.users || {};
+  const existing = Object.keys(accts.users);
+  if (existing.length === 0) {
+    accts.users[DEFAULT_ADMIN] = {
+      username: DEFAULT_ADMIN,
+      passwordHash: hashPassword(DEFAULT_PASS),
+      createdAt: Date.now()
+    };
+    saveAccounts(accts);
+    console.log('已创建默认管理员: ' + DEFAULT_ADMIN);
+  }
+}
+ensureDefaultAdmin();
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log('========================================');
