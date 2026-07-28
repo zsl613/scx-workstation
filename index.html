@@ -160,11 +160,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Micr
 .profile-info{flex:1}
 .profile-info h3{font-size:17px;font-weight:700;margin:0 0 2px}
 .profile-info .profile-role{font-size:11px;opacity:.75}
-.profile-stats{display:flex;gap:12px;margin-top:14px;position:relative;z-index:1}
-.profile-stat{flex:1;background:rgba(255,255,255,.12);border-radius:8px;padding:10px 8px;text-align:center;border:1px solid rgba(255,255,255,.08)}
-.profile-stat .stat-num{font-size:18px;font-weight:700}
-.profile-stat .stat-label{font-size:10px;opacity:.7;margin-top:2px}
-.profile-actions{display:flex;gap:8px;margin-top:12px;position:relative;z-index:1}
+.profile-actions{display:flex;gap:8px;margin-top:14px;position:relative;z-index:1}
 .profile-btn{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:12px;cursor:pointer;text-align:center;transition:.15s;touch-action:manipulation}
 .profile-btn:active{background:rgba(255,255,255,.2)}
 /* Login page */
@@ -852,10 +848,6 @@ function configureDeepSeekKey() {
 // ============ Personal ============
 function renderPersonal() {
   const p = DB.profile || {};
-  const doneTodos = DB.todos.filter(t=>t.status==='done').length;
-  const totalTodos = DB.todos.length;
-  const projectCnt = DB.projects.length;
-  const todayLog = DB.logs.find(l=>l.date===new Date().toISOString().slice(0,10));
   // Profile card
   const profH = '<div class="profile-card">'+
     '<div class="profile-top">'+
@@ -864,11 +856,6 @@ function renderPersonal() {
         '<h3>'+(p.name||(AUTH_USER||'管理员'))+'</h3>'+
         '<div class="profile-role">'+(p.role||'管理员')+' · '+(p.company||'蜀川鑫工作室')+'</div>'+
       '</div>'+
-    '</div>'+
-    '<div class="profile-stats">'+
-      '<div class="profile-stat"><div class="stat-num">'+projectCnt+'</div><div class="stat-label">项目总数</div></div>'+
-      '<div class="profile-stat"><div class="stat-num">'+doneTodos+'</div><div class="stat-label">已完成待办</div></div>'+
-      '<div class="profile-stat"><div class="stat-num">'+(p.phone?'✓':'−')+'</div><div class="stat-label">手机绑定</div></div>'+
     '</div>'+
     '<div class="profile-actions">'+
       '<div class="profile-btn" onclick="openSheet(\'profile\')">✏️ 编辑资料</div>'+
