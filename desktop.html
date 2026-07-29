@@ -307,8 +307,9 @@ tr:hover td { background:#f8fafc; }
     <div class="grid-3" id="accountGrid"></div>
   </div>
   <div class="grid-2">
-    <div class="card"><div class="card-title"><span>热门视频</span><button class="btn btn-outline btn-sm" onclick="openModal('hotVideo')">+ 添加</button></div>
+    <div class="card"><div class="card-title"><span>热门视频</span><div style="display:flex;gap:6px;"><button class="btn btn-outline btn-sm" onclick="refreshHotspot()" style="font-size:11px;">🔄 刷新热点</button><button class="btn btn-outline btn-sm" onclick="openModal('hotVideo')">+ 添加</button></div></div>
       <div id="hotVideosList"></div>
+      <div style="margin-top:6px;font-size:11px;color:var(--text-light);text-align:center;" id="hotspotInfoDesktop">💡 点击"刷新热点"自动获取最新行业动态和选题建议</div>
     </div>
     <div class="card"><div class="card-title"><span>运营建议</span><button class="btn btn-outline btn-sm" onclick="openModal('advice')">+ 添加</button></div>
       <div id="adviceList" style="max-height:320px;overflow-y:auto;"></div>
@@ -512,6 +513,7 @@ function enterApp() {
   document.getElementById('sidebarUser').textContent = AUTH_USER;
   initDate();
   renderOverview();
+  setTimeout(() => fetchDailyHotspot(), 3000);
 }
 
 // ==================== Navigation ====================
@@ -522,7 +524,8 @@ document.querySelectorAll('.nav-item').forEach(item => {
     item.classList.add('active');
     document.getElementById('page-'+item.dataset.page).classList.add('active');
     const renders = { overview:renderOverview, projects:renderProjects, finance:renderFinance, customers:renderCustomers, media:renderMedia, knowledge:renderKnowledge, personal:renderPersonal };
-    if(renders[item.dataset.page]) renders[item.dataset.page]();
+    if(renders[item.dataset.page]) { renders[item.dataset.page](); }
+    if(item.dataset.page === 'media') fetchDailyHotspot();
   });
 });
 
@@ -876,6 +879,13 @@ function renderMedia() {
     const clrs = ['#dc2626','#f59e0b','#2563eb','#16a34a','#8b5cf6'];
     chartMediaDailyInst = new Chart(c3,{type:'bar',data:{labels:dates,datasets:plats.map((p,i)=>({label:p,data:dates.map(d=>{const it=DB.mdata.find(x=>x.date===d&&x.plt===p);return it?it.views:0;}),backgroundColor:clrs[i%clrs.length],borderRadius:4}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
   }
+  // Update hotspot info
+  setTimeout(() => {
+    const hd = localStorage.getItem('scx_hotspot_date');
+    const hs = localStorage.getItem('scx_hotspot_source') || '';
+    const el = document.getElementById('hotspotInfoDesktop');
+    if (el) el.textContent = hd ? '✅ 今日已刷新 · 来源: ' + hs + ' · ' + hd : '💡 点击"刷新热点"自动获取最新行业动态和选题建议';
+  }, 50);
 }
 
 // ==================== Knowledge ====================
@@ -1157,6 +1167,82 @@ function setVal(id,val){ const el=document.getElementById(id); if(el) el.value=v
 function deleteAccount(id){ if(!confirm('确定删除该账号？')) return; DB.accounts=DB.accounts.filter(a=>a.id!==id); saveLocal(); renderMedia(); showToast('已删除'); }
 function deleteHotVideo(id){ if(!confirm('确定删除该视频？')) return; DB.hotVideos=DB.hotVideos.filter(v=>v.id!==id); saveLocal(); renderMedia(); showToast('已删除'); }
 function deleteAdvice(id){ if(!confirm('确定删除该建议？')) return; DB.mediaAdvice=DB.mediaAdvice.filter(a=>a.id!==id); saveLocal(); renderMedia(); showToast('已删除'); }
+
+// ============ Daily Hotspot Auto-Refresh ============
+let hotspotLoading = false;
+async function fetchDailyHotspot(force) {
+  if (!SYNC_SERVER || hotspotLoading) return;
+  const today = new Date().toISOString().slice(0,10);
+  const lastFetch = localStorage.getItem('scx_hotspot_date');
+  if (!force && lastFetch === today) return;
+
+  hotspotLoading = true;
+  try {
+    const url = SYNC_SERVER + '/api/hotspot/daily';
+    const resp = await fetch(force ? (url + '?_=' + Date.now()) : url, { signal: AbortSignal.timeout(10000) });
+    const d = await resp.json();
+    if (!d.ok || !d.data) return;
+
+    const data = d.data;
+    localStorage.setItem('scx_hotspot_date', today);
+    localStorage.setItem('scx_hotspot_source', data.source || '未知');
+
+    const existTitles = new Set(DB.hotVideos.map(v=>v.title));
+    let added = 0;
+    (data.hotVideos || []).forEach(v => {
+      if (!existTitles.has(v.title)) {
+        DB.hotVideos.unshift({
+          id: Date.now() + Math.random() * 10000 | 0,
+          plt: v.plt || 'B站', title: v.title, author: v.author || '',
+          views: v.views || '0', likes: v.likes || '0',
+          link: v.link || '', note: v.note || '', date: today
+        });
+        existTitles.add(v.title); added++;
+      }
+    });
+
+    const existAdvice = new Set(DB.mediaAdvice.map(a=>a.title));
+    (data.mediaAdvice || []).forEach(a => {
+      if (!existAdvice.has(a.title)) {
+        DB.mediaAdvice.unshift({
+          id: Date.now() + Math.random() * 10000 | 0,
+          date: today, title: a.title, cat: a.cat || '', content: a.content
+        });
+        existAdvice.add(a.title); added++;
+      }
+    });
+
+    const existIdeas = new Set(DB.remixIdeas.map(r=>r.original));
+    (data.remixIdeas || []).forEach(r => {
+      const title = r.title || r.original || '';
+      if (!existIdeas.has(title)) {
+        DB.remixIdeas.unshift({
+          id: Date.now() + Math.random() * 10000 | 0,
+          date: today, source: r.cat || r.source || 'AI推荐',
+          original: title, idea: r.desc || r.idea || '',
+          plt: '全平台', status: '待执行'
+        });
+        existIdeas.add(title); added++;
+      }
+    });
+
+    if (added > 0) {
+      saveLocal();
+      renderMedia();
+      showToast('已更新 ' + added + ' 条热点 · 来源: ' + (data.source || '智能'));
+    }
+  } catch(e) {
+    console.log('Hotspot fetch:', e.message);
+  } finally {
+    hotspotLoading = false;
+  }
+}
+
+function refreshHotspot() {
+  if (!SYNC_SERVER) { showToast('未连接服务器'); return; }
+  showToast('正在刷新热点...');
+  fetchDailyHotspot(true);
+}
 
 function closeModal() { document.getElementById('modalOverlay').classList.remove('show'); }
 function fv(id) { return document.getElementById(id)?.value||''; }

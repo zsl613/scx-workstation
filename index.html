@@ -403,7 +403,7 @@ function switchTab(tab) {
     content.innerHTML = '<div class="page active">' + pages[tab]() + '</div>';
     if (tab === 'overview') setTimeout(renderOverviewCharts, 100);
     if (tab === 'business') setTimeout(renderBusinessCharts, 100);
-    if (tab === 'media') setTimeout(renderMediaCharts, 100);
+    if (tab === 'media') { fetchDailyHotspot(); setTimeout(renderMediaCharts, 100); }
   }
   updateFab();
   content.scrollTop = 0;
@@ -633,8 +633,11 @@ function renderMedia() {
     '<div class="remix-card"><div class="remix-card-title">🎬 '+r.original+'</div><div class="remix-card-meta">来源: '+r.source+' · 平台: '+r.plt+' · '+r.date+'</div><div class="remix-card-idea">💡 '+r.idea+'</div><div style="margin-top:6px;display:flex;gap:4px;align-items:center;"><span class="badge '+(r.status==='待执行'?'badge-amber':r.status==='制作中'?'badge-blue':'badge-green')+'">'+r.status+'</span><button class="btn btn-sm btn-outline" onclick="cycleRemixStatus('+r.id+')" style="font-size:10px;padding:3px 8px;">切换状态</button><button class="btn btn-sm btn-outline" onclick="editRemix('+r.id+')" style="font-size:10px;padding:3px 8px;">编辑</button><button class="btn btn-sm btn-outline" onclick="delRemix('+r.id+')" style="font-size:10px;padding:3px 8px;color:#dc2626;">删除</button></div></div>'
   ).join(''):'<div class="empty"><p>暂无二创灵感</p></div>';
   const topicH=DB.topics.map(t=>'<tr><td>'+t.date.slice(5)+'</td><td>'+t.plt+'</td><td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;">'+t.topic+'</td><td>'+t.type+'</td><td><span class="badge '+(t.status==='已发布'?'badge-green':t.status==='待拍摄'?'badge-amber':'badge-blue')+'">'+t.status+'</span></td><td><button class="btn btn-sm btn-outline" onclick="editTopic('+t.id+')" style="font-size:10px;padding:2px 6px;">编</button><button class="btn btn-sm btn-outline" onclick="delTopic('+t.id+')" style="font-size:10px;padding:2px 6px;color:#dc2626;margin-left:2px;">删</button></td></tr>').join('');
+  const hDate = localStorage.getItem('scx_hotspot_date') || '';
+  const hSrc = localStorage.getItem('scx_hotspot_source') || '';
+  const hInfo = hDate ? '✅ 今日已刷新 · 来源: ' + hSrc + ' · ' + hDate : '💡 每日自动推送热点，点击刷新按钮获取最新内容';
   return '<div class="card"><div class="card-title"><span>账号矩阵</span></div>'+acctH+'</div>'+
-    '<div class="card"><div class="card-title"><span>🔥 热门视频</span></div>'+linkH+videoH+'<div style="margin-top:8px;font-size:11px;color:var(--text-light);text-align:center;">💡 每日8:00自动推送热点，也可手动添加优质视频</div></div>'+
+    '<div class="card"><div class="card-title"><span>🔥 热门视频</span><button class="btn btn-sm btn-outline" onclick="refreshHotspot()" style="font-size:10px;padding:3px 8px;margin-left:auto;">🔄 刷新热点</button></div>'+linkH+videoH+'<div style="margin-top:8px;font-size:11px;color:var(--text-light);text-align:center;" id="hotspotInfo">'+hInfo+'</div></div>'+
     '<div class="card"><div class="card-title"><span>💡 运营建议</span></div>'+adviceH+'</div>'+
     '<div class="card"><div class="card-title"><span>🎬 二创灵感</span></div>'+remixH+'</div>'+
     '<div class="card"><div class="card-title"><span>选题管理</span></div><div class="tbl-wrap"><table><thead><tr><th>日期</th><th>平台</th><th>选题</th><th>类型</th><th>状态</th><th>操作</th></tr></thead><tbody>'+(topicH||'<tr><td colspan="6" style="text-align:center;color:var(--text-light);">暂无选题</td></tr>')+'</tbody></table></div></div>'+
@@ -658,6 +661,100 @@ function delAccount(id){DB.accounts=DB.accounts.filter(a=>a.id!==id);saveData();
 function editAccount(id){const a=DB.accounts.find(x=>x.id===id);if(!a)return;openSheet('account');document.getElementById('modalTitle').textContent='编辑账号';setTimeout(()=>{if(document.getElementById('s_name')){document.getElementById('s_plt').value=a.plt;document.getElementById('s_name').value=a.name;document.getElementById('s_fans').value=a.fans;document.getElementById('s_status').value=a.status||'活跃';}},50);document.getElementById('modalSave').onclick=()=>{a.plt=v('s_plt');a.name=v('s_name');a.fans=+v('s_fans')||0;a.status=v('s_status');if(!a.name)return showToast('请输入账号名');saveData();closeModal();switchTab('media');showToast('已更新');};}
 function delTopic(id){DB.topics=DB.topics.filter(t=>t.id!==id);saveData();switchTab('media');showToast('已删除');}
 function editTopic(id){const t=DB.topics.find(x=>x.id===id);if(!t)return;openSheet('topic');document.getElementById('modalTitle').textContent='编辑选题';setTimeout(()=>{if(document.getElementById('s_tplt')){document.getElementById('s_tplt').value=t.plt;document.getElementById('s_ttopic').value=t.topic;document.getElementById('s_ttype').value=t.type;document.getElementById('s_tstatus').value=t.status;document.getElementById('s_tdate').value=t.date;}},50);document.getElementById('modalSave').onclick=()=>{t.plt=v('s_tplt');t.topic=v('s_ttopic');t.type=v('s_ttype');t.status=v('s_tstatus');t.date=v('s_tdate');if(!t.topic)return showToast('请输入选题');saveData();closeModal();switchTab('media');showToast('已更新');};}
+
+// ============ Daily Hotspot Auto-Refresh ============
+let hotspotLoading = false;
+async function fetchDailyHotspot(force) {
+  if (!SYNC_SERVER || hotspotLoading) return;
+  const today = new Date().toISOString().slice(0,10);
+  const lastFetch = localStorage.getItem('scx_hotspot_date');
+  if (!force && lastFetch === today) return; // already fetched today
+
+  hotspotLoading = true;
+  try {
+    const url = SYNC_SERVER + '/api/hotspot/daily';
+    const resp = await fetch(force ? (url + '?t=' + Date.now()) : url, { signal: AbortSignal.timeout(10000) });
+    const d = await resp.json();
+    if (!d.ok || !d.data) return;
+
+    const data = d.data;
+    // Save hotspot date
+    localStorage.setItem('scx_hotspot_date', today);
+    localStorage.setItem('scx_hotspot_source', data.source || '未知');
+
+    // Merge hotVideos - skip duplicates by title
+    const existTitles = new Set(DB.hotVideos.map(v=>v.title));
+    let added = 0;
+    (data.hotVideos || []).forEach(v => {
+      if (!existTitles.has(v.title)) {
+        DB.hotVideos.unshift({
+          id: Date.now() + Math.random() * 10000 | 0,
+          plt: v.plt || 'B站',
+          title: v.title,
+          author: v.author || '',
+          views: v.views || '0',
+          likes: v.likes || '0',
+          link: v.link || '',
+          note: v.note || '',
+          date: today
+        });
+        existTitles.add(v.title);
+        added++;
+      }
+    });
+
+    // Merge mediaAdvice - skip duplicates by title
+    const existAdvice = new Set(DB.mediaAdvice.map(a=>a.title));
+    (data.mediaAdvice || []).forEach(a => {
+      if (!existAdvice.has(a.title)) {
+        DB.mediaAdvice.unshift({
+          id: Date.now() + Math.random() * 10000 | 0,
+          date: today,
+          title: a.title,
+          cat: a.cat || '',
+          content: a.content
+        });
+        existAdvice.add(a.title);
+        added++;
+      }
+    });
+
+    // Merge remixIdeas (convert format: title→original, desc→idea, cat→source)
+    const existIdeas = new Set(DB.remixIdeas.map(r=>r.original));
+    (data.remixIdeas || []).forEach(r => {
+      const title = r.title || r.original || '';
+      if (!existIdeas.has(title)) {
+        DB.remixIdeas.unshift({
+          id: Date.now() + Math.random() * 10000 | 0,
+          date: today,
+          source: r.cat || r.source || 'AI推荐',
+          original: title,
+          idea: r.desc || r.idea || '',
+          plt: '全平台',
+          status: '待执行'
+        });
+        existIdeas.add(title);
+        added++;
+      }
+    });
+
+    if (added > 0) {
+      saveData();
+      if (currentTab === 'media') switchTab('media');
+      showToast('已更新 ' + added + ' 条热点 · 来源: ' + (data.source || '智能'));
+    }
+  } catch(e) {
+    console.log('Hotspot fetch:', e.message);
+  } finally {
+    hotspotLoading = false;
+  }
+}
+
+function refreshHotspot() {
+  if (!SYNC_SERVER) { showToast('未连接服务器'); return; }
+  showToast('正在刷新热点...');
+  fetchDailyHotspot(true);
+}
 
 // ============ Knowledge ============
 function renderKnowledge() {
@@ -1212,6 +1309,7 @@ function handleLogin() {
       document.getElementById('loginOverlay').style.display = 'none';
       document.getElementById('loginUserInfo').innerHTML = AUTH_USER + ' <span class="logout-link" onclick="handleLogout()">退出</span>';
       initSync();
+      setTimeout(() => fetchDailyHotspot(), 3000);
       switchTab('overview');
     } else {
       setLoginError(d.error || '登录失败');
@@ -1451,6 +1549,7 @@ function initApp() {
         if (d.ok) {
           document.getElementById('loginOverlay').style.display = 'none';
           initSync();
+          setTimeout(() => fetchDailyHotspot(), 3000);
           switchTab('overview');
           updateFab();
         } else {

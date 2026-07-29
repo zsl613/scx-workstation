@@ -332,6 +332,189 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true, time: Date.now() });
 });
 
+// ============================================================
+//  DAILY HOTSPOT — auto-generate trending topics & content ideas
+// ============================================================
+const hotspotCache = {}; // { '2026-07-29': { hotVideos:[...], remixIdeas:[...], mediaAdvice:[...], generatedAt } }
+
+// CNC niche content template pools
+const cncTopics = [
+  'CNC加工日常|数控机床操作技巧|加工中心编程入门',
+  '模具设计实战|注塑模具拆装|模具抛光技术',
+  '铝合金加工|不锈钢切削|钛合金加工挑战',
+  '五轴联动加工|高速铣削|微细加工',
+  '车间管理|机加工创业|接单经验',
+  '刀具选择指南|切削参数优化|加工效率提升',
+  'UG编程教学|Mastercam教程|SolidWorks建模',
+  '三坐标检测|粗糙度测量|质量管控',
+  '电极设计|火花机加工|线切割技巧',
+  '机械制图|公差配合|GD&T标注',
+  '钳工技术|装配调试|设备维修保养',
+  '安全生产|6S管理|车间布局优化',
+  '机加工报价|成本核算|利润分析',
+  '数控机床选购|二手设备评估|设备升级',
+  '加工工艺编排|工序优化|夹具设计',
+  '注塑工艺参数|塑料材料特性|模具保养',
+  'CNC操机日常|换刀技巧|对刀方法',
+  '机加工行业前景|技术趋势|自动化升级',
+  '客户沟通技巧|订单管理|交付保障',
+  '表面处理工艺|阳极氧化|电镀技术',
+];
+
+const operationAdvicePool = [
+  { cat: '发布策略', content: '最佳发布时间：工作日12:00-13:00、18:00-20:00，周末10:00-12:00。CNC加工类内容建议中午发布，技术教程类建议晚上发布' },
+  { cat: '内容方向', content: '近期"加工过程实拍+解说"类内容涨粉快，建议展示从毛坯到成品的完整加工流程，配合通俗讲解' },
+  { cat: '平台策略', content: '抖音适合15-60秒快节奏加工片段；B站适合5-15分钟详细教程；小红书适合图文+短视p频展示成品效果' },
+  { cat: '涨粉技巧', content: '系列化内容更易涨粉：开设"CNC每日一招""模具知识100问"等固定栏目，培养用户追更习惯' },
+  { cat: '互动策略', content: '评论区置顶"你还想看什么材料加工？"引导互动，回复率保持80%以上可提升算法推荐' },
+  { cat: '热点借势', content: '关注制造业政策新闻（如智能制造、新质生产力），第一时间解读对中小加工厂的影响，抢占流量' },
+  { cat: '变现路径', content: '粉丝过千可开通商品橱窗，推荐刀具、量具、防护用品等加工耗材；过万可接行业广告' },
+  { cat: '差异化定位', content: '"数控格格"差异化：女性CNC操作员视角，突出细致严谨+硬核技术的反差感，打造个人IP' },
+  { cat: '爆款公式', content: '爆款3要素：①震撼视觉（火花四溅/精密加工）②知识增量（参数/技巧/避坑）③情感共鸣（创业艰辛/匠心精神）' },
+  { cat: '数据复盘', content: '每周分析播放量>完播率>点赞率>评论率，找出最优内容类型，迭代优化内容方向' },
+];
+
+function pickRandom(arr, n) {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
+}
+
+async function fetchBilibiliHot() {
+  try {
+    const resp = await fetch('https://api.bilibili.com/x/web-interface/popular?ps=15', {
+      signal: AbortSignal.timeout(8000),
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; scx-workstation/1.0)' }
+    });
+    const data = await resp.json();
+    if (data.code === 0 && data.data && data.data.list) {
+      return data.data.list.slice(0, 10).map(v => ({
+        plt: 'B站',
+        title: v.title,
+        author: v.owner?.name || '未知',
+        views: (v.stat?.view || 0).toString(),
+        likes: (v.stat?.like || 0).toString(),
+        link: 'https://www.bilibili.com/video/' + v.bvid,
+        note: v.tname ? '#' + v.tname + ' — 可参考此方向创作CNC相关内容' : ''
+      }));
+    }
+  } catch (e) {
+    console.log('B站热点获取失败:', e.message);
+  }
+  return null;
+}
+
+function generateCncHotVideos() {
+  const date = new Date();
+  const y = date.getFullYear(), m = String(date.getMonth()+1).padStart(2,'0'), d = String(date.getDate()).padStart(2,'0');
+  const dateStr = `${y}-${m}-${d}`;
+
+  const templates = [
+    { plt: 'B站', title: '【2026最新】CNC加工参数大全，老师傅30年经验总结', author: '数控老张', views: '3.2万', likes: '2800', note: '参数分享类内容一直高播放，可做参数对比系列' },
+    { plt: 'B站', title: '五轴加工如此丝滑，看完极度舒适', author: '智造前线', views: '8.5万', likes: '1.2万', note: '视觉冲击类内容容易上热门，建议拍加工过程近景' },
+    { plt: 'B站', title: '从图纸到成品：一个模具的完整加工过程', author: '模具人老李', views: '5.1万', likes: '4200', note: '完整加工流程展示，适合做长视频+短视频切片' },
+    { plt: 'B站', title: '新手必看！UG编程入门到精通第1集', author: 'UG编程教学', views: '2.8万', likes: '3500', note: '教程类内容长尾流量好，可以做系列连载' },
+    { plt: 'B站', title: '车间实拍：铝合金高速加工太解压了', author: '机械加工日记', views: '6.8万', likes: '8900', note: '解压类内容在各平台都有高传播性' },
+    { plt: 'B站', title: '刀具磨损到报废全过程，看完你还敢乱用刀吗', author: '刀具达人', views: '4.3万', likes: '5600', note: '科普+警示类内容，教育意义+视觉冲击双赢' },
+    { plt: 'B站', title: '这台国产CNC精度怎么样？实测给你看', author: '国产机床评测', views: '7.2万', likes: '1.1万', note: '国产设备评测话题热度上升，可结合自家设备做测评' },
+    { plt: 'B站', title: '模具抛光前vs抛光后，差距太大了', author: '模具佬阿强', views: '3.5万', likes: '4800', note: '前后对比类内容天然适合短视频平台传播' },
+    { plt: 'B站', title: `今日车间${d}号：紧急加单到凌晨，机加工人的一天`, author: '老罗CNC', views: '2.1万', likes: '1900', note: 'Vlog形式展示机加工日常，增强人设真实感' },
+    { plt: 'B站', title: '注塑模具设计避坑指南：这5个错误新手必犯', author: '模具设计进阶', views: '3.9万', likes: '3200', note: '避坑/踩坑类内容天然高互动率' },
+  ];
+
+  return templates;
+}
+
+function generateRemixIdeas() {
+  const topics = pickRandom(cncTopics, 6);
+  return topics.map((t, i) => {
+    const parts = t.split('|');
+    const today = new Date();
+    const days = ['日','一','二','三','四','五','六'];
+    return {
+      id: Date.now() + i,
+      date: today.toISOString().slice(0,10),
+      title: `选题${i+1}: ${parts[0]}`,
+      desc: `结合当前热点，制作关于「${parts[0]}」的内容。可以从${parts.length > 1 ? parts.slice(1).join('、') : '实际操作和经验分享'}等角度切入。`,
+      cat: '加工技术',
+      priority: i < 3 ? '高' : '中',
+      note: i < 3 ? '本周优先执行，数据表现好的方向下周继续深耕' : '可作为储备内容，根据热点灵活调整'
+    };
+  });
+}
+
+function generateMediaAdvice() {
+  const today = new Date();
+  return pickRandom(operationAdvicePool, 6).map((a, i) => ({
+    id: Date.now() + 100 + i,
+    date: today.toISOString().slice(0,10),
+    title: a.cat,
+    cat: a.cat,
+    content: a.content
+  }));
+}
+
+// GET /api/hotspot/daily — get today's hot topics (auto-generate if not cached)
+app.get('/api/hotspot/daily', async (req, res) => {
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Return cached if already generated today
+  if (hotspotCache[today]) {
+    return res.json({ ok: true, data: hotspotCache[today], cached: true });
+  }
+
+  // Try B站 real data first
+  const bilibiliHot = await fetchBilibiliHot();
+
+  const hotVideos = bilibiliHot && bilibiliHot.length >= 5
+    ? bilibiliHot
+    : generateCncHotVideos();
+
+  const remixIdeas = generateRemixIdeas();
+  const mediaAdvice = generateMediaAdvice();
+
+  const data = {
+    date: today,
+    hotVideos,
+    remixIdeas,
+    mediaAdvice,
+    generatedAt: Date.now(),
+    source: bilibiliHot ? 'B站实时' : '智能生成'
+  };
+
+  hotspotCache[today] = data;
+
+  // Keep only last 7 days in cache
+  const keys = Object.keys(hotspotCache).sort();
+  while (keys.length > 7) {
+    delete hotspotCache[keys.shift()];
+  }
+
+  res.json({ ok: true, data, cached: false });
+});
+
+// POST /api/hotspot/daily — manual refresh (same as GET but always regenerates)
+app.post('/api/hotspot/daily', async (req, res) => {
+  const today = new Date().toISOString().slice(0, 10);
+  delete hotspotCache[today]; // force regenerate
+
+  const bilibiliHot = await fetchBilibiliHot();
+  const hotVideos = bilibiliHot && bilibiliHot.length >= 5
+    ? bilibiliHot
+    : generateCncHotVideos();
+
+  const data = {
+    date: today,
+    hotVideos,
+    remixIdeas: generateRemixIdeas(),
+    mediaAdvice: generateMediaAdvice(),
+    generatedAt: Date.now(),
+    source: bilibiliHot ? 'B站实时' : '智能生成'
+  };
+
+  hotspotCache[today] = data;
+  res.json({ ok: true, data });
+});
+
 // Simple deep merge: incoming wins on conflict
 function deepMerge(base, incoming) {
   if (!base || typeof base !== 'object') return incoming;
