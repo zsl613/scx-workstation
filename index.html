@@ -523,17 +523,17 @@ function renderOverview() {
     '<div class="card"><div class="card-title"><span>今日待办</span></div>'+todoH+'</div>'+
     '<div class="card"><div class="card-title"><span>近期项目</span></div>'+projH+'</div>'+
     '<div class="card"><div class="card-title"><span>收支趋势</span></div><div class="chart-wrap"><canvas id="ovFinanceChart"></canvas></div></div>'+
-    '<div class="card"><div class="card-title"><span>📊 数据分析 · 上月经营概况</span><span style="font-size:11px;color:var(--primary);" onclick="generateMonthlyAnalysis();switchTab(\'overview\')">刷新 →</span></div>'+renderMonthlyAnalysis()+'</div>';
+    '<div class="card"><div class="card-title"><span>📊 数据分析 · 上月经营概况</span><span style="font-size:11px;color:var(--primary);" onclick="generateMonthlyAnalysis(true);switchTab(\'overview\')">刷新 →</span></div>'+renderMonthlyAnalysis()+'</div>';
 }
 
 // ============ Monthly Analysis ============
 function getLastMonth() { const d=new Date(); d.setDate(0); return d.toISOString().slice(0,7); }
 function getMonthLabel(m) { const parts=m.split('-'); const labels=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']; return parts[0]+'年'+labels[parseInt(parts[1])-1]; }
-function generateMonthlyAnalysis() {
+function generateMonthlyAnalysis(force) {
   const lm = getLastMonth();
   const now = new Date(); const today = now.toISOString().slice(0,10);
   // If already generated this month, skip
-  if (DB.monthlyAnalysis.lastGenerated === lm) return renderMonthlyAnalysis();
+  if (DB.monthlyAnalysis.lastGenerated === lm && !force) return renderMonthlyAnalysis();
   const fin = DB.finance.filter(f=>f.month===lm);
   if (!fin.length) { DB.monthlyAnalysis.months[lm] = '<div class="empty"><p>暂无'+getMonthLabel(lm)+'的财务数据</p><p style="font-size:11px;color:var(--text-light);">请先在经营管理 → 财务模块录入数据</p></div>'; DB.monthlyAnalysis.lastGenerated=lm; saveData(); return DB.monthlyAnalysis.months[lm]; }
   const rev = fin.reduce((s,f)=>s+f.income,0) || 1;
