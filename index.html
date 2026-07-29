@@ -435,7 +435,7 @@ function switchTab(tab) {
     content.innerHTML = '<div class="page active">' + pages[tab]() + '</div>';
     if (tab === 'overview') setTimeout(renderOverviewCharts, 100);
     if (tab === 'business') setTimeout(renderBusinessCharts, 100);
-    if (tab === 'media') { fetchDailyHotspot(); setTimeout(renderMediaCharts, 100); }
+    if (tab === 'media') { fetchDailyHotspot(); }
   }
   updateFab();
   content.scrollTop = 0;
@@ -652,16 +652,19 @@ function editEquipment(id){const e=DB.equipment.find(x=>x.id===id);if(!e)return;
 // ============ Media ============
 const PLATFORM_LINKS={抖音:{url:'https://www.douyin.com/search/CNC%E5%8A%A0%E5%B7%A5',icon:'🎵',kw:'CNC加工'},快手:{url:'https://www.kuaishou.com/search/video?searchKey=CNC%E5%8A%A0%E5%B7%A5',icon:'⚡',kw:'CNC加工'},小红书:{url:'https://www.xiaohongshu.com/search_result?keyword=%E6%9C%BA%E6%A2%B0%E5%8A%A0%E5%B7%A5',icon:'📕',kw:'机械加工'},B站:{url:'https://search.bilibili.com/all?keyword=CNC%E5%8A%A0%E5%B7%A5&order=click',icon:'📺',kw:'CNC加工'},微信视频号:{url:'https://channels.weixin.qq.com/search?query=%E6%9C%BA%E6%A2%B0%E5%88%B6%E9%80%A0',icon:'💬',kw:'机械制造'}};
 function renderMedia() {
+  const t=new Date().toISOString().slice(0,10);
   const emoji={抖音:'🎵',快手:'⚡',小红书:'📕',B站:'📺','微信视频号':'💬'};
   const acctH=DB.accounts.map(a=>'<div class="account-item"><div class="account-emoji">'+(emoji[a.plt]||'📱')+'</div><div class="account-info"><h5>'+a.name+'</h5><p>'+a.plt+'</p></div><div><div class="account-num">'+a.fans.toLocaleString()+'</div><div class="account-sub">粉丝</div></div><div class="editable-item-actions" style="margin-left:8px;"><button class="btn btn-sm btn-outline" onclick="editAccount('+a.id+');event.stopPropagation();" style="font-size:10px;padding:3px 6px;">编辑</button><button class="btn btn-sm btn-outline" onclick="delAccount('+a.id+');event.stopPropagation();" style="font-size:10px;padding:3px 6px;color:#dc2626;">删</button></div></div>').join('');
   const linkH=Object.entries(PLATFORM_LINKS).map(([k,v])=>'<a class="platform-link" href="'+v.url+'" target="_blank" rel="noopener"><span style="font-size:20px;">'+v.icon+'</span><div><div style="font-size:12px;font-weight:600;">'+k+' · '+v.kw+'</div><div style="font-size:10px;color:var(--text-light);">搜索热门内容</div></div></a>').join('');
   const videoH=DB.hotVideos.length?DB.hotVideos.slice().reverse().slice(0,3).map(h=>
     '<div class="video-card"><div class="video-card-title">'+h.title+'</div><div class="video-card-meta"><span>📱 '+h.plt+'</span><span>👤 '+h.author+'</span><span>▶️ '+h.views+'</span><span>❤️ '+h.likes+'</span></div>'+(h.note?'<div class="video-card-note">💡 '+h.note+'</div>':'')+'<div style="margin-top:6px;display:flex;gap:4px;">'+(h.link?'<a href="'+h.link+'" target="_blank" rel="noopener" class="btn btn-sm btn-outline" style="font-size:10px;padding:3px 8px;">打开</a>':'')+'<button class="btn btn-sm btn-outline" onclick="editHotVideo('+h.id+')" style="font-size:10px;padding:3px 8px;">编辑</button><button class="btn btn-sm btn-outline" onclick="delHotVideo('+h.id+')" style="font-size:10px;padding:3px 8px;color:#dc2626;">删除</button></div></div>'
   ).join(''):'<div class="empty"><p>暂无热门视频记录</p></div>';
-  const adviceH=DB.mediaAdvice.length?DB.mediaAdvice.map(a=>
+  const advToday=DB.mediaAdvice.filter(a=>a.date===t).slice(0,3);
+  const adviceH=advToday.length?advToday.map(a=>
     '<div class="advice-card"><div class="advice-card-title">'+a.title+'</div><div class="advice-card-cat">📂 '+a.cat+' · '+a.date+'</div><div class="advice-card-content">'+a.content+'</div><div style="margin-top:6px;display:flex;gap:4px;"><button class="btn btn-sm btn-outline" onclick="editAdvice('+a.id+')" style="font-size:10px;padding:3px 8px;">编辑</button><button class="btn btn-sm btn-outline" onclick="delAdvice('+a.id+')" style="font-size:10px;padding:3px 8px;color:#dc2626;">删除</button></div></div>'
   ).join(''):'<div class="empty"><p>暂无运营建议</p></div>';
-  const remixH=DB.remixIdeas.length?DB.remixIdeas.map(r=>
+  const remixToday=DB.remixIdeas.filter(r=>r.date===t).slice(0,4);
+  const remixH=remixToday.length?remixToday.map(r=>
     '<div class="remix-card"><div class="remix-card-title">🎬 '+r.original+'</div><div class="remix-card-meta">来源: '+r.source+' · 平台: '+r.plt+' · '+r.date+'</div><div class="remix-card-idea">💡 '+r.idea+'</div><div style="margin-top:6px;display:flex;gap:4px;align-items:center;"><span class="badge '+(r.status==='待执行'?'badge-amber':r.status==='制作中'?'badge-blue':'badge-green')+'">'+r.status+'</span><button class="btn btn-sm btn-outline" onclick="cycleRemixStatus('+r.id+')" style="font-size:10px;padding:3px 8px;">切换状态</button><button class="btn btn-sm btn-outline" onclick="editRemix('+r.id+')" style="font-size:10px;padding:3px 8px;">编辑</button><button class="btn btn-sm btn-outline" onclick="delRemix('+r.id+')" style="font-size:10px;padding:3px 8px;color:#dc2626;">删除</button></div></div>'
   ).join(''):'<div class="empty"><p>暂无二创灵感</p></div>';
   const topicH=DB.topics.map(t=>'<tr><td>'+t.date.slice(5)+'</td><td>'+t.plt+'</td><td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;">'+t.topic+'</td><td>'+t.type+'</td><td><span class="badge '+(t.status==='已发布'?'badge-green':t.status==='待拍摄'?'badge-amber':'badge-blue')+'">'+t.status+'</span></td><td><button class="btn btn-sm btn-outline" onclick="editTopic('+t.id+')" style="font-size:10px;padding:2px 6px;">编</button><button class="btn btn-sm btn-outline" onclick="delTopic('+t.id+')" style="font-size:10px;padding:2px 6px;color:#dc2626;margin-left:2px;">删</button></td></tr>').join('');
@@ -672,17 +675,7 @@ function renderMedia() {
     '<div class="card"><div class="card-title"><span>🔥 热门视频</span><button class="btn btn-sm btn-outline" onclick="refreshHotspot()" style="font-size:10px;padding:3px 8px;margin-left:auto;">🔄 刷新热点</button></div>'+linkH+videoH+'<div style="margin-top:8px;font-size:11px;color:var(--text-light);text-align:center;" id="hotspotInfo">'+hInfo+'</div></div>'+
     '<div class="card"><div class="card-title"><span>💡 运营建议</span></div>'+adviceH+'</div>'+
     '<div class="card"><div class="card-title"><span>🎬 二创灵感</span></div>'+remixH+'</div>'+
-    '<div class="card"><div class="card-title"><span>选题管理</span></div><div class="tbl-wrap"><table><thead><tr><th>日期</th><th>平台</th><th>选题</th><th>类型</th><th>状态</th><th>操作</th></tr></thead><tbody>'+(topicH||'<tr><td colspan="6" style="text-align:center;color:var(--text-light);">暂无选题</td></tr>')+'</tbody></table></div></div>'+
-    '<div class="card"><div class="card-title"><span>数据趋势</span></div><div class="chart-wrap"><canvas id="mediaChart"></canvas></div></div>';
-}
-let medCInst;
-function renderMediaCharts(){
-  const ctx=document.getElementById('mediaChart');if(!ctx)return;if(medCInst)medCInst.destroy();
-  const acctPlats=[...new Set(DB.accounts.map(a=>a.plt))];
-  const plats=acctPlats.length?acctPlats:[...new Set(DB.mdata.map(d=>d.plt))];
-  const dates=[...new Set(DB.mdata.map(d=>d.date))].sort();
-  const colors=['#dc2626','#f59e0b','#2563eb','#16a34a'];
-  medCInst=new Chart(ctx,{type:'bar',data:{labels:dates,datasets:plats.map((p,i)=>({label:p,data:dates.map(d=>{const x=DB.mdata.find(y=>y.date===d&&y.plt===p);return x?x.views:0}),backgroundColor:colors[i%4],borderRadius:4}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}},scales:{y:{ticks:{font:{size:9}}},x:{ticks:{font:{size:9}}}}}});
+    '<div class="card"><div class="card-title"><span>选题管理</span></div><div class="tbl-wrap"><table><thead><tr><th>日期</th><th>平台</th><th>选题</th><th>类型</th><th>状态</th><th>操作</th></tr></thead><tbody>'+(topicH||'<tr><td colspan="6" style="text-align:center;color:var(--text-light);">暂无选题</td></tr>')+'</tbody></table></div></div>';
 }
 function delHotVideo(id){DB.hotVideos=DB.hotVideos.filter(v=>v.id!==id);saveData();switchTab('media');showToast('已删除');}
 function editHotVideo(id){const h=DB.hotVideos.find(x=>x.id===id);if(!h)return;openSheet('hotVideo');document.getElementById('modalTitle').textContent='编辑热门视频';setTimeout(()=>{if(document.getElementById('s_hvplt')){document.getElementById('s_hvplt').value=h.plt;document.getElementById('s_hvtitle').value=h.title;document.getElementById('s_hvauthor').value=h.author;document.getElementById('s_hvviews').value=h.views;document.getElementById('s_hvlikes').value=h.likes;document.getElementById('s_hvlink').value=h.link||'';document.getElementById('s_hvnote').value=h.note||'';}},50);document.getElementById('modalSave').onclick=()=>{h.plt=v('s_hvplt');h.title=v('s_hvtitle');h.author=v('s_hvauthor');h.views=v('s_hvviews');h.likes=v('s_hvlikes');h.link=v('s_hvlink');h.note=v('s_hvnote');if(!h.title)return showToast('请输入标题');saveData();closeModal();switchTab('media');showToast('已更新');};}
