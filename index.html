@@ -317,6 +317,24 @@ function loadData() {
       // 补齐缺失的财务月份
       const existMonths = new Set((p.finance||[]).map(f=>f.month));
       (def.finance||[]).forEach(f=>{ if(!existMonths.has(f.month)) p.finance.push({...f}); });
+      // 合并重复月份数据（同步/恢复可能导致同一月份多条记录）
+      if(p.finance && p.finance.length){
+        const monthMap = new Map();
+        for(const f of p.finance){
+          if(!monthMap.has(f.month)){
+            monthMap.set(f.month, JSON.parse(JSON.stringify(f)));
+          }else{
+            const ex = monthMap.get(f.month);
+            ex.income = (ex.income||0) + (f.income||0);
+            ex.expense = (ex.expense||0) + (f.expense||0);
+            if(!ex.incomeBreakdown) ex.incomeBreakdown = {};
+            if(!ex.expenseBreakdown) ex.expenseBreakdown = {};
+            for(const [k,v] of Object.entries(f.incomeBreakdown||{})) ex.incomeBreakdown[k] = (ex.incomeBreakdown[k]||0) + v;
+            for(const [k,v] of Object.entries(f.expenseBreakdown||{})) ex.expenseBreakdown[k] = (ex.expenseBreakdown[k]||0) + v;
+          }
+        }
+        p.finance = Array.from(monthMap.values());
+      }
       if(p.finance) p.finance.sort((a,b)=>a.month.localeCompare(b.month));
       p.nid = p.nid || {};
       ['hotVideo','advice','remix','kbItem','transaction','topic'].forEach(k => { if(!p.nid[k]) p.nid[k] = def.nid[k] || 1; });
@@ -1270,7 +1288,7 @@ function renderFinanceDetail(){
   const incSourceH=Object.entries(incomeSources).map(([k,x],i)=>{const pct=(x/totalInc*100).toFixed(1);return '<div class="fin-source-item"><div style="flex:1;"><div style="display:flex;justify-content:space-between"><span>'+k+'</span><span style="font-weight:600;color:#16a34a;">¥'+x.toLocaleString()+' ('+pct+'%)</span></div><div class="fin-source-bar"><div class="fin-source-fill" style="width:'+pct+'%;background:'+incColor[i%5]+';"></div></div></div></div>';}).join('')||'<div class="empty"><p>暂无收入数据</p></div>';
   const expSourceH=Object.entries(expenseSources).map(([k,x],i)=>{const pct=(x/totalExp*100).toFixed(1);return '<div class="fin-source-item"><div style="flex:1;"><div style="display:flex;justify-content:space-between"><span>'+k+'</span><span style="font-weight:600;color:#dc2626;">¥'+x.toLocaleString()+' ('+pct+'%)</span></div><div class="fin-source-bar"><div class="fin-source-fill" style="width:'+pct+'%;background:'+expColor[i%5]+';"></div></div></div></div>';}).join('')||'<div class="empty"><p>暂无支出数据</p></div>';
   const recentH=DB.transactions.slice(0,8).map(t=>'<div class="fin-row" style="cursor:pointer;"><div class="fin-info"><h5>'+t.source+(t.client?' · '+t.client:'')+'</h5><p>'+t.date+' · '+(t.note||'')+'</p></div><div class="fin-amt '+t.type+'">'+(t.type==='income'?'+':'-')+'¥'+t.amount.toLocaleString()+'</div></div>').join('');
-  const histH=DB.finance.length?DB.finance.sort((a,b)=>b.month.localeCompare(a.month)).slice(0,12).map(f=>{
+  const histH=DB.finance.length?[...DB.finance].sort((a,b)=>b.month.localeCompare(a.month)).slice(0,12).map(f=>{
     const pft=f.income-f.expense;
     const hasBreakdown=Object.keys(f.incomeBreakdown||{}).length>0||Object.keys(f.expenseBreakdown||{}).length>0;
     const breakHtml=hasBreakdown?'<span style="font-size:10px;color:var(--primary);margin-left:4px;cursor:pointer;" onclick="event.stopPropagation();toggleMonthBreakdown(\''+f.month+'\')" title="展开构成">▶</span>':'';

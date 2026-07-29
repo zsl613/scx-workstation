@@ -450,6 +450,24 @@ function loadData() {
       // 补齐缺失的财务月份
       const existMonths = new Set((d.finance||[]).map(f=>f.month));
       (def.finance||[]).forEach(f=>{ if(!existMonths.has(f.month)) d.finance.push({...f}); });
+      // 合并重复月份数据（同步/恢复可能导致同一月份多条记录）
+      if(d.finance && d.finance.length){
+        const monthMap = new Map();
+        for(const f of d.finance){
+          if(!monthMap.has(f.month)){
+            monthMap.set(f.month, JSON.parse(JSON.stringify(f)));
+          }else{
+            const ex = monthMap.get(f.month);
+            ex.income = (ex.income||0) + (f.income||0);
+            ex.expense = (ex.expense||0) + (f.expense||0);
+            if(!ex.incomeBreakdown) ex.incomeBreakdown = {};
+            if(!ex.expenseBreakdown) ex.expenseBreakdown = {};
+            for(const [k,v] of Object.entries(f.incomeBreakdown||{})) ex.incomeBreakdown[k] = (ex.incomeBreakdown[k]||0) + v;
+            for(const [k,v] of Object.entries(f.expenseBreakdown||{})) ex.expenseBreakdown[k] = (ex.expenseBreakdown[k]||0) + v;
+          }
+        }
+        d.finance = Array.from(monthMap.values());
+      }
       if(d.finance) d.finance.sort((a,b)=>a.month.localeCompare(b.month));
       // Mark as used
       d._v = d._v || 1;
