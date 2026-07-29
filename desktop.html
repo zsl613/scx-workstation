@@ -585,20 +585,29 @@ function pullFromServer(silent) {
         // Server has newer data → trust server for deletions, preserve unsynced local additions
         _syncing = true;
         const known = getKnownIds();
-        DB = deepMergeLocal(DB, d.data, true, known);
-        saveLocal();
-        _syncing = false;
-        lastSyncTs = d.timestamp;
-        updateSyncBadge('online');
-        // Refresh current active page after sync
-        const ap = document.querySelector('.page.active');
-        if (ap) {
-          const pn = ap.id.replace('page-', '');
-          const refreshers = { overview: renderOverview, finance: renderFinance, media: renderMedia, knowledge: renderKnowledge, customers: renderCustomers, personal: renderPersonal };
-          if (refreshers[pn]) refreshers[pn]();
-          else renderOverview();
+        const prevJson = JSON.stringify(DB);
+        const merged = deepMergeLocal(DB, d.data, true, known);
+        if (JSON.stringify(merged) === prevJson) {
+          // No actual change — just update timestamps, skip re-render
+          _syncing = false;
+          lastSyncTs = d.timestamp;
+          updateSyncBadge('online');
+        } else {
+          DB = merged;
+          saveLocal();
+          _syncing = false;
+          lastSyncTs = d.timestamp;
+          updateSyncBadge('online');
+          // Refresh current active page after sync
+          const ap = document.querySelector('.page.active');
+          if (ap) {
+            const pn = ap.id.replace('page-', '');
+            const refreshers = { overview: renderOverview, finance: renderFinance, media: renderMedia, knowledge: renderKnowledge, customers: renderCustomers, personal: renderPersonal };
+            if (refreshers[pn]) refreshers[pn]();
+            else renderOverview();
+          }
+          if (!silent) showToast('已同步最新数据');
         }
-        if (!silent) showToast('已同步最新数据');
       }
     } else if (d.ok && !d.data && !silent) {
       updateSyncBadge('syncing');

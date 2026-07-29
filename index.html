@@ -1627,13 +1627,22 @@ function pullFromServer(silent){
         // Server has newer data → trust server for deletions, preserve unsynced local additions
         _syncing = true;
         const known = getKnownIds();
-        DB = deepMergeLocal(DB, d.data, true, known);
-        saveLocal();
-        _syncing = false;
-        lastSyncTs = d.timestamp;
-        updateSyncBadge('online');
-        switchTab(currentTab);
-        if (!silent) showToast('已同步最新数据');
+        const prevJson = JSON.stringify(DB);
+        const merged = deepMergeLocal(DB, d.data, true, known);
+        if (JSON.stringify(merged) === prevJson) {
+          // No actual change — just update timestamps, skip re-render
+          _syncing = false;
+          lastSyncTs = d.timestamp;
+          updateSyncBadge('online');
+        } else {
+          DB = merged;
+          saveLocal();
+          _syncing = false;
+          lastSyncTs = d.timestamp;
+          updateSyncBadge('online');
+          switchTab(currentTab);
+          if (!silent) showToast('已同步最新数据');
+        }
       }
     } else if (d.ok && !d.data && !silent) {
       // Server has no data (e.g. after restart) — push local data to restore
