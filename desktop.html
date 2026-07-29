@@ -841,7 +841,7 @@ function renderMedia() {
     </div>
   `).join('')||'<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text-light);">暂无账号</div>';
 
-  document.getElementById('hotVideosList').innerHTML = DB.hotVideos.slice().reverse().slice(0,10).map(v=>`
+  document.getElementById('hotVideosList').innerHTML = DB.hotVideos.slice().reverse().slice(0,3).map(v=>`
     <div class="hot-item">
       <div style="flex:1;">
         <div style="font-size:13px;font-weight:500;">${v.title}</div>
