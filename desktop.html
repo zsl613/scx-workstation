@@ -378,6 +378,7 @@ let DB = loadData();
 let syncOnline = false;
 let syncTimer = null;
 let lastSyncTs = 0;
+let _lastPushTs = parseInt(localStorage.getItem(STORAGE_KEY + '_lastPushTs') || '0');
 let pushTimeout = null;
 let _syncing = false; // prevent push loop during pull
 
@@ -498,6 +499,8 @@ function saveLocal() {
     pushTimeout = setTimeout(() => { pushToServer(); pushTimeout = null; }, 800);
   }
 }
+// delete-friendly save: write local and push immediately (skip debounce for critical ops)
+function saveAndPush() { saveLocal(); pushToServer(); }
 
 // ==================== Sync System Functions ====================
 function authFetch(url, opts) {
@@ -558,7 +561,7 @@ function pushToServer() {
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(8000)
   }).then(r => r.json()).then(d => {
-    if (d.ok) { updateSyncBadge('online'); }
+    if (d.ok) { updateSyncBadge('online'); _lastPushTs = Date.now(); localStorage.setItem(STORAGE_KEY + '_lastPushTs', String(_lastPushTs)); }
     if (d.merged) { pullFromServer(true); }
   }).catch(() => { syncOnline = false; updateSyncBadge('offline'); });
 }
@@ -569,22 +572,30 @@ function pullFromServer(silent) {
     method: 'GET',
     signal: AbortSignal.timeout(8000)
   }).then(r => r.json()).then(d => {
-    if (d.ok && d.data && d.timestamp > lastSyncTs) {
-      _syncing = true;
-      DB = deepMergeLocal(DB, d.data);
-      saveLocal(); // calls saveLocal but _syncing prevents push loop
-      _syncing = false;
-      lastSyncTs = d.timestamp;
-      updateSyncBadge('online');
-      // Refresh current active page after sync
-      const ap = document.querySelector('.page.active');
-      if (ap) {
-        const pn = ap.id.replace('page-', '');
-        const refreshers = { overview: renderOverview, finance: renderFinance, media: renderMedia, knowledge: renderKnowledge, customers: renderCustomers, personal: renderPersonal };
-        if (refreshers[pn]) refreshers[pn]();
-        else renderOverview();
+    if (d.ok && d.data) {
+      if (d.timestamp < _lastPushTs) {
+        // Server data is stale (local has been pushed more recently) → push local to server
+        updateSyncBadge('syncing');
+        pushToServer();
+      } else {
+        _syncing = true;
+        DB = deepMergeLocal(DB, d.data);
+        saveLocal(); // calls saveLocal but _syncing prevents push loop
+        _syncing = false;
+        lastSyncTs = d.timestamp;
+        updateSyncBadge('online');
+        // Refresh current active page after sync
+        const ap = document.querySelector('.page.active');
+        if (ap) {
+          const pn = ap.id.replace('page-', '');
+          const refreshers = { overview: renderOverview, finance: renderFinance, media: renderMedia, knowledge: renderKnowledge, customers: renderCustomers, personal: renderPersonal };
+          if (refreshers[pn]) refreshers[pn]();
+          else renderOverview();
+        }
+        if (!silent) showToast('已同步最新数据');
+        // Push merged result back so server is up to date
+        pushToServer();
       }
-      if (!silent) showToast('已同步最新数据');
     } else if (d.ok && !d.data && !silent) {
       updateSyncBadge('syncing');
       pushToServer();
@@ -603,13 +614,15 @@ function deepMergeLocal(base, incoming) {
       if (incoming[key].length === 0 && Array.isArray(base[key]) && base[key].length > 0) {
         result[key] = base[key];
       } else if (Array.isArray(base[key]) && incoming[key].length > 0 && incoming[key][0] && typeof incoming[key][0].id !== 'undefined') {
+        // Merge arrays by id: keep all base items, update common ids from incoming, DON'T add incoming-only items
+        // (incoming-only items could be stale deleted items from a failed push — the local view is authoritative)
         const merged = [...base[key]];
         const baseIds = new Map(merged.map((x, i) => [x.id, i]));
         for (const item of incoming[key]) {
           if (item && typeof item.id !== 'undefined') {
             const idx = baseIds.get(item.id);
             if (idx !== undefined) merged[idx] = item;
-            else { merged.push(item); baseIds.set(item.id, merged.length - 1); }
+            // incoming-only items are NOT added to prevent deleted items from resurrecting
           }
         }
         result[key] = merged;
@@ -848,7 +861,7 @@ function advanceProject(id) {
   if(idx<order.length-1){ p.status = order[idx+1]; p.progress = p.status==='done'?100:(p.progress||0)+25; saveLocal(); renderProjects(); showToast('已推进'); }
 }
 
-function deleteProject(id) { if(!confirm('确定删除该项目？')) return; DB.projects=DB.projects.filter(p=>p.id!==id); saveLocal(); renderProjects(); showToast('已删除'); }
+function deleteProject(id) { if(!confirm('确定删除该项目？')) return; DB.projects=DB.projects.filter(p=>p.id!==id); saveAndPush(); renderProjects(); showToast('已删除'); }
 
 function showProjectDetail(id) {
   const p = DB.projects.find(x=>x.id===id); if(!p) return;
@@ -873,7 +886,7 @@ function showProjectDetail(id) {
   ov.classList.add('show');
 }
 
-function deleteEquipment(id) { if(!confirm('确定删除该设备？')) return; DB.equipment=DB.equipment.filter(e=>e.id!==id); saveLocal(); renderProjects(); showToast('已删除'); }
+function deleteEquipment(id) { if(!confirm('确定删除该设备？')) return; DB.equipment=DB.equipment.filter(e=>e.id!==id); saveAndPush(); renderProjects(); showToast('已删除'); }
 
 // ==================== Finance ====================
 let chartFinMonthInst, chartFinPieInst;
@@ -957,8 +970,8 @@ function renderFinance() {
   document.getElementById('financeTable').innerHTML = '<div style="overflow-x:auto;"><table><thead><tr><th>日期</th><th>类型</th><th>来源/用途</th><th>客户</th><th>金额</th><th>备注</th><th>操作</th></tr></thead><tbody>'+[...DB.transactions].reverse().map(t=>`<tr><td>${t.date}</td><td><span class="badge ${t.type==='income'?'badge-green':'badge-red'}">${t.type==='income'?'收入':'支出'}</span></td><td>${t.source}</td><td>${t.client||'-'}</td><td style="font-weight:700;color:${t.type==='income'?'var(--success)':'var(--danger)'};">¥${t.amount.toLocaleString()}</td><td>${t.note||'-'}</td><td style="white-space:nowrap;"><button class="btn btn-sm btn-outline" onclick="event.stopPropagation();openModal('transaction',${t.id})">编辑</button> <button class="btn btn-sm btn-outline" onclick="event.stopPropagation();deleteTransaction(${t.id})" style="color:#dc2626;">删除</button></td></tr>`).join('')+'</tbody></table></div>';
 }
 
-function deleteTransaction(id) { if(!confirm('确定删除该流水？')) return; DB.transactions=DB.transactions.filter(t=>t.id!==id); saveLocal(); renderFinance(); showToast('已删除'); }
-function deleteTopic(id) { if(!confirm('确定删除该选题？')) return; DB.topics=DB.topics.filter(t=>t.id!==id); saveLocal(); renderMedia(); showToast('已删除'); }
+function deleteTransaction(id) { if(!confirm('确定删除该流水？')) return; DB.transactions=DB.transactions.filter(t=>t.id!==id); saveAndPush(); renderFinance(); showToast('已删除'); }
+function deleteTopic(id) { if(!confirm('确定删除该选题？')) return; DB.topics=DB.topics.filter(t=>t.id!==id); saveAndPush(); renderMedia(); showToast('已删除'); }
 
 function editFinanceMonth(month){
   const f=DB.finance.find(x=>x.month===month);if(!f)return;
@@ -1064,8 +1077,8 @@ function renderCustomers() {
   `).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-light);">暂无员工</td></tr>';
 }
 
-function deleteCustomer(id) { if(!confirm('确定删除该客户？')) return; DB.customers=DB.customers.filter(c=>c.id!==id); saveLocal(); renderCustomers(); showToast('已删除'); }
-function deleteEmployee(id) { if(!confirm('确定删除该员工？')) return; DB.employees=DB.employees.filter(e=>e.id!==id); saveLocal(); renderCustomers(); showToast('已删除'); }
+function deleteCustomer(id) { if(!confirm('确定删除该客户？')) return; DB.customers=DB.customers.filter(c=>c.id!==id); saveAndPush(); renderCustomers(); showToast('已删除'); }
+function deleteEmployee(id) { if(!confirm('确定删除该员工？')) return; DB.employees=DB.employees.filter(e=>e.id!==id); saveAndPush(); renderCustomers(); showToast('已删除'); }
 
 // ==================== Media ====================
 
@@ -1287,8 +1300,8 @@ function renderPersonal() {
 }
 
 function toggleTodo(id) { const t=DB.todos.find(x=>x.id===id); if(t){t.status=t.status==='done'?'pending':'done';saveLocal();renderPersonal();} }
-function deleteTodo(id) { if(!confirm('确定删除该待办？')) return; DB.todos=DB.todos.filter(t=>t.id!==id); saveLocal(); renderPersonal(); showToast('已删除'); }
-function deleteLog(id) { if(!confirm('确定删除该日志？')) return; DB.logs=DB.logs.filter(l=>l.id!==id); saveLocal(); renderPersonal(); showToast('已删除'); }
+function deleteTodo(id) { if(!confirm('确定删除该待办？')) return; DB.todos=DB.todos.filter(t=>t.id!==id); saveAndPush(); renderPersonal(); showToast('已删除'); }
+function deleteLog(id) { if(!confirm('确定删除该日志？')) return; DB.logs=DB.logs.filter(l=>l.id!==id); saveAndPush(); renderPersonal(); showToast('已删除'); }
 
 // ============ 数据备份 ============
 function exportData() {
@@ -1443,9 +1456,9 @@ function openModal(type, editId) {
 }
 
 function setVal(id,val){ const el=document.getElementById(id); if(el) el.value=val||''; }
-function deleteAccount(id){ if(!confirm('确定删除该账号？')) return; DB.accounts=DB.accounts.filter(a=>a.id!==id); saveLocal(); renderMedia(); showToast('已删除'); }
-function deleteHotVideo(id){ if(!confirm('确定删除该视频？')) return; DB.hotVideos=DB.hotVideos.filter(v=>v.id!==id); saveLocal(); renderMedia(); showToast('已删除'); }
-function deleteAdvice(id){ if(!confirm('确定删除该建议？')) return; DB.mediaAdvice=DB.mediaAdvice.filter(a=>a.id!==id); saveLocal(); renderMedia(); showToast('已删除'); }
+function deleteAccount(id){ if(!confirm('确定删除该账号？')) return; DB.accounts=DB.accounts.filter(a=>a.id!==id); saveAndPush(); renderMedia(); showToast('已删除'); }
+function deleteHotVideo(id){ if(!confirm('确定删除该视频？')) return; DB.hotVideos=DB.hotVideos.filter(v=>v.id!==id); saveAndPush(); renderMedia(); showToast('已删除'); }
+function deleteAdvice(id){ if(!confirm('确定删除该建议？')) return; DB.mediaAdvice=DB.mediaAdvice.filter(a=>a.id!==id); saveAndPush(); renderMedia(); showToast('已删除'); }
 
 // ============ Daily Hotspot Auto-Refresh ============
 let hotspotLoading = false;

@@ -357,6 +357,8 @@ function loadData() {
   return getDefaultData();
 }
 function saveData() { saveLocal(); if (syncOnline && AUTH_TOKEN) debouncePush(); }
+// delete-friendly save: write local and push immediately (skip debounce for critical ops)
+function saveAndPush() { saveLocal(); pushToServer(); }
 function saveLocal() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
   // Auto-backup: save a copy every 10 minutes as safety net
@@ -658,13 +660,13 @@ function renderBusinessCharts(){
   bizFCInst=new Chart(ctx,{type:'line',data:{labels:DB.finance.map(f=>f.month),datasets:[{label:'收入',data:DB.finance.map(f=>f.income),borderColor:'#16a34a',backgroundColor:'rgba(22,163,74,.1)',fill:true,tension:.3},{label:'支出',data:DB.finance.map(f=>f.expense),borderColor:'#dc2626',backgroundColor:'rgba(220,38,38,.1)',fill:true,tension:.3},{label:'利润',data:DB.finance.map(f=>f.income-f.expense),borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.1)',fill:true,tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}},scales:{y:{ticks:{font:{size:9}}},x:{ticks:{font:{size:9}}}}}});
 }
 function advProject(id){const p=DB.projects.find(x=>x.id===id);if(!p)return;const order=['quote','produce','qc','done'];const i=order.indexOf(p.status);if(i<order.length-1){p.status=order[i+1];p.progress=p.status==='done'?100:p.progress+25;saveData();showToast('已推进');switchTab('business');}}
-function delProject(id){DB.projects=DB.projects.filter(p=>p.id!==id);saveData();switchTab('business');showToast('已删除');}
+function delProject(id){DB.projects=DB.projects.filter(p=>p.id!==id);saveAndPush();switchTab('business');showToast('已删除');}
 function editProject(id){const p=DB.projects.find(x=>x.id===id);if(!p)return;openSheet('project');document.getElementById('modalTitle').textContent='编辑项目';setTimeout(()=>{if(document.getElementById('s_name')){document.getElementById('s_name').value=p.name;document.getElementById('s_client').value=p.client;document.getElementById('s_budget').value=p.budget;document.getElementById('s_status').value=p.status;document.getElementById('s_deadline').value=p.deadline;document.getElementById('s_notes').value=p.notes||'';}},50);document.getElementById('modalSave').onclick=()=>{p.name=v('s_name');p.client=v('s_client');p.budget=+v('s_budget')||0;p.status=v('s_status');p.deadline=v('s_deadline');p.notes=v('s_notes');if(!p.name)return showToast('请输入项目名称');saveData();closeModal();switchTab('business');showToast('已更新');};}
-function delCustomer(id){DB.customers=DB.customers.filter(c=>c.id!==id);saveData();switchTab('business');showToast('已删除');}
+function delCustomer(id){DB.customers=DB.customers.filter(c=>c.id!==id);saveAndPush();switchTab('business');showToast('已删除');}
 function editCustomer(id){const c=DB.customers.find(x=>x.id===id);if(!c)return;openSheet('customer');document.getElementById('modalTitle').textContent='编辑客户';setTimeout(()=>{if(document.getElementById('s_cname')){document.getElementById('s_cname').value=c.name;document.getElementById('s_ccompany').value=c.company;document.getElementById('s_cphone').value=c.phone;document.getElementById('s_corders').value=c.orders;document.getElementById('s_camount').value=c.amount;document.getElementById('s_ccontact').value=c.contact||'';document.getElementById('s_cpaid').value=c.paid||0;document.getElementById('s_cunpaid').value=c.unpaid||0;}},50);document.getElementById('modalSave').onclick=()=>{c.name=v('s_cname');c.company=v('s_ccompany');c.phone=v('s_cphone');c.orders=+v('s_corders')||0;c.amount=+v('s_camount')||0;c.contact=v('s_ccontact');c.paid=+v('s_cpaid')||0;c.unpaid=+v('s_cunpaid')||0;if(!c.name)return showToast('请输入客户名');saveData();closeModal();switchTab('business');showToast('已更新');};}
-function delEmployee(id){DB.employees=DB.employees.filter(e=>e.id!==id);saveData();switchTab('business');showToast('已删除');}
+function delEmployee(id){DB.employees=DB.employees.filter(e=>e.id!==id);saveAndPush();switchTab('business');showToast('已删除');}
 function editEmployee(id){const e=DB.employees.find(x=>x.id===id);if(!e)return;openSheet('employee');document.getElementById('modalTitle').textContent='编辑员工';setTimeout(()=>{if(document.getElementById('s_ename')){document.getElementById('s_ename').value=e.name;document.getElementById('s_erole').value=e.role;document.getElementById('s_ephone').value=e.phone;document.getElementById('s_estatus').value=e.status;document.getElementById('s_etask').value=e.task;}},50);document.getElementById('modalSave').onclick=()=>{e.name=v('s_ename');e.role=v('s_erole');e.phone=v('s_ephone');e.status=v('s_estatus');e.task=v('s_etask');if(!e.name)return showToast('请输入姓名');saveData();closeModal();switchTab('business');showToast('已更新');};}
-function delEquipment(id){DB.equipment=DB.equipment.filter(e=>e.id!==id);saveData();switchTab('business');showToast('已删除');}
+function delEquipment(id){DB.equipment=DB.equipment.filter(e=>e.id!==id);saveAndPush();switchTab('business');showToast('已删除');}
 function editEquipment(id){const e=DB.equipment.find(x=>x.id===id);if(!e)return;openSheet('equipment');document.getElementById('modalTitle').textContent='编辑设备';setTimeout(()=>{if(document.getElementById('s_eqname')){document.getElementById('s_eqname').value=e.name;document.getElementById('s_eqmodel').value=e.model;document.getElementById('s_eqstatus').value=e.status;document.getElementById('s_eqlast').value=e.last;document.getElementById('s_eqnext').value=e.next;}},50);document.getElementById('modalSave').onclick=()=>{e.name=v('s_eqname');e.model=v('s_eqmodel');e.status=v('s_eqstatus');e.last=v('s_eqlast');e.next=v('s_eqnext');if(!e.name)return showToast('请输入设备名');saveData();closeModal();switchTab('business');showToast('已更新');};}
 
 // ============ Media ============
@@ -695,16 +697,16 @@ function renderMedia() {
     '<div class="card"><div class="card-title"><span>🎬 二创灵感</span></div>'+remixH+'</div>'+
     '<div class="card"><div class="card-title"><span>选题管理</span></div><div class="tbl-wrap"><table><thead><tr><th>日期</th><th>平台</th><th>选题</th><th>类型</th><th>状态</th><th>操作</th></tr></thead><tbody>'+(topicH||'<tr><td colspan="6" style="text-align:center;color:var(--text-light);">暂无选题</td></tr>')+'</tbody></table></div></div>';
 }
-function delHotVideo(id){DB.hotVideos=DB.hotVideos.filter(v=>v.id!==id);saveData();switchTab('media');showToast('已删除');}
+function delHotVideo(id){DB.hotVideos=DB.hotVideos.filter(v=>v.id!==id);saveAndPush();switchTab('media');showToast('已删除');}
 function editHotVideo(id){const h=DB.hotVideos.find(x=>x.id===id);if(!h)return;openSheet('hotVideo');document.getElementById('modalTitle').textContent='编辑热门视频';setTimeout(()=>{if(document.getElementById('s_hvplt')){document.getElementById('s_hvplt').value=h.plt;document.getElementById('s_hvtitle').value=h.title;document.getElementById('s_hvauthor').value=h.author;document.getElementById('s_hvviews').value=h.views;document.getElementById('s_hvlikes').value=h.likes;document.getElementById('s_hvlink').value=h.link||'';document.getElementById('s_hvnote').value=h.note||'';}},50);document.getElementById('modalSave').onclick=()=>{h.plt=v('s_hvplt');h.title=v('s_hvtitle');h.author=v('s_hvauthor');h.views=v('s_hvviews');h.likes=v('s_hvlikes');h.link=v('s_hvlink');h.note=v('s_hvnote');if(!h.title)return showToast('请输入标题');saveData();closeModal();switchTab('media');showToast('已更新');};}
-function delAdvice(id){DB.mediaAdvice=DB.mediaAdvice.filter(a=>a.id!==id);saveData();switchTab('media');showToast('已删除');}
+function delAdvice(id){DB.mediaAdvice=DB.mediaAdvice.filter(a=>a.id!==id);saveAndPush();switchTab('media');showToast('已删除');}
 function editAdvice(id){const a=DB.mediaAdvice.find(x=>x.id===id);if(!a)return;openSheet('advice');document.getElementById('modalTitle').textContent='编辑运营建议';setTimeout(()=>{if(document.getElementById('s_adtitle')){document.getElementById('s_adtitle').value=a.title;document.getElementById('s_adcat').value=a.cat;document.getElementById('s_adcontent').value=a.content;}},50);document.getElementById('modalSave').onclick=()=>{a.title=v('s_adtitle');a.cat=v('s_adcat');a.content=v('s_adcontent');if(!a.title)return showToast('请输入标题');saveData();closeModal();switchTab('media');showToast('已更新');};}
-function delRemix(id){DB.remixIdeas=DB.remixIdeas.filter(r=>r.id!==id);saveData();switchTab('media');showToast('已删除');}
+function delRemix(id){DB.remixIdeas=DB.remixIdeas.filter(r=>r.id!==id);saveAndPush();switchTab('media');showToast('已删除');}
 function editRemix(id){const r=DB.remixIdeas.find(x=>x.id===id);if(!r)return;openSheet('remix');document.getElementById('modalTitle').textContent='编辑二创灵感';setTimeout(()=>{if(document.getElementById('s_rxsource')){document.getElementById('s_rxsource').value=r.source;document.getElementById('s_rxoriginal').value=r.original;document.getElementById('s_rxidea').value=r.idea;document.getElementById('s_rxplt').value=r.plt;document.getElementById('s_rxstatus').value=r.status;}},50);document.getElementById('modalSave').onclick=()=>{r.source=v('s_rxsource');r.original=v('s_rxoriginal');r.idea=v('s_rxidea');r.plt=v('s_rxplt');r.status=v('s_rxstatus');if(!r.original)return showToast('请输入原内容');saveData();closeModal();switchTab('media');showToast('已更新');};}
 function cycleRemixStatus(id){const r=DB.remixIdeas.find(x=>x.id===id);if(!r)return;const sts=['待执行','制作中','已发布'];const i=sts.indexOf(r.status);r.status=sts[(i+1)%3];saveData();switchTab('media');showToast('状态: '+r.status);}
-function delAccount(id){DB.accounts=DB.accounts.filter(a=>a.id!==id);saveData();switchTab('media');showToast('已删除');}
+function delAccount(id){DB.accounts=DB.accounts.filter(a=>a.id!==id);saveAndPush();switchTab('media');showToast('已删除');}
 function editAccount(id){const a=DB.accounts.find(x=>x.id===id);if(!a)return;openSheet('account');document.getElementById('modalTitle').textContent='编辑账号';setTimeout(()=>{if(document.getElementById('s_name')){document.getElementById('s_plt').value=a.plt;document.getElementById('s_name').value=a.name;document.getElementById('s_fans').value=a.fans;document.getElementById('s_status').value=a.status||'活跃';}},50);document.getElementById('modalSave').onclick=()=>{a.plt=v('s_plt');a.name=v('s_name');a.fans=+v('s_fans')||0;a.status=v('s_status');if(!a.name)return showToast('请输入账号名');saveData();closeModal();switchTab('media');showToast('已更新');};}
-function delTopic(id){DB.topics=DB.topics.filter(t=>t.id!==id);saveData();switchTab('media');showToast('已删除');}
+function delTopic(id){DB.topics=DB.topics.filter(t=>t.id!==id);saveAndPush();switchTab('media');showToast('已删除');}
 function editTopic(id){const t=DB.topics.find(x=>x.id===id);if(!t)return;openSheet('topic');document.getElementById('modalTitle').textContent='编辑选题';setTimeout(()=>{if(document.getElementById('s_tplt')){document.getElementById('s_tplt').value=t.plt;document.getElementById('s_ttopic').value=t.topic;document.getElementById('s_ttype').value=t.type;document.getElementById('s_tstatus').value=t.status;document.getElementById('s_tdate').value=t.date;}},50);document.getElementById('modalSave').onclick=()=>{t.plt=v('s_tplt');t.topic=v('s_ttopic');t.type=v('s_ttype');t.status=v('s_tstatus');t.date=v('s_tdate');if(!t.topic)return showToast('请输入选题');saveData();closeModal();switchTab('media');showToast('已更新');};}
 
 // ============ Daily Hotspot Auto-Refresh ============
@@ -829,10 +831,10 @@ function renderKBDetail(cat) {
 }
 function addKBItem(cat,si){openSheet('kbItem',cat+':'+si);}
 function editKBItem(cat,si,ii){openSheet('kbItem',cat+':'+si+':'+ii);}
-function delKBItem(cat,si,ii){DB.kbData[cat].sections[si].items.splice(ii,1);saveData();openSubPage('kb',cat);showToast('已删除');}
+function delKBItem(cat,si,ii){DB.kbData[cat].sections[si].items.splice(ii,1);saveAndPush();openSubPage('kb',cat);showToast('已删除');}
 function addKBSection(cat){openSheet('kbSection',cat);}
 function editKBSection(cat,si){openSheet('kbSection',cat+':'+si);}
-function delKBSection(cat,si){if(!confirm('确认删除整个分类？'))return;DB.kbData[cat].sections.splice(si,1);saveData();openSubPage('kb',cat);showToast('已删除');}
+function delKBSection(cat,si){if(!confirm('确认删除整个分类？'))return;DB.kbData[cat].sections.splice(si,1);saveAndPush();openSubPage('kb',cat);showToast('已删除');}
 
 // ============ Knowledge Search ============
 function switchKBSearchTab(mode, el) {
@@ -1036,9 +1038,9 @@ function renderPersonal() {
     '<div class="card" style="border:1px dashed var(--primary);background:#f8fafc;"><div class="card-title"><span>💾 数据备份</span></div><p style="font-size:11px;color:var(--text);margin-bottom:10px;">数据保存在浏览器中，建议定期导出备份。更换设备或清理缓存后可从备份恢复。</p><div style="display:flex;gap:8px;"><button class="btn btn-primary" style="flex:1;justify-content:center;padding:10px;" onclick="exportData()">📥 导出备份</button><button class="btn btn-outline" style="flex:1;justify-content:center;padding:10px;" onclick="importData()">📤 导入恢复</button></div></div>';
 }
 function toggleTodo(id){const t=DB.todos.find(x=>x.id===id);if(t){t.status=t.status==='done'?'pending':'done';saveData();switchTab('personal');}}
-function delTodo(id){DB.todos=DB.todos.filter(t=>t.id!==id);saveData();switchTab('personal');showToast('已删除');}
+function delTodo(id){DB.todos=DB.todos.filter(t=>t.id!==id);saveAndPush();switchTab('personal');showToast('已删除');}
 function editTodo(id){const t=DB.todos.find(x=>x.id===id);if(!t)return;openSheet('todo');document.getElementById('modalTitle').textContent='编辑待办';setTimeout(()=>{if(document.getElementById('s_txt')){document.getElementById('s_txt').value=t.txt;document.getElementById('s_pri').value=t.pri;document.getElementById('s_cat').value=t.cat;document.getElementById('s_due').value=t.due;}},50);document.getElementById('modalSave').onclick=()=>{t.txt=v('s_txt');t.pri=v('s_pri');t.cat=v('s_cat');t.due=v('s_due');if(!t.txt)return showToast('请输入内容');saveData();closeModal();switchTab('personal');showToast('已更新');};}
-function delLog(id){DB.logs=DB.logs.filter(l=>l.id!==id);saveData();switchTab('personal');showToast('已删除');}
+function delLog(id){DB.logs=DB.logs.filter(l=>l.id!==id);saveAndPush();switchTab('personal');showToast('已删除');}
 function editLog(id){const l=DB.logs.find(x=>x.id===id);if(!l)return;openSheet('log');document.getElementById('modalTitle').textContent='编辑日志';setTimeout(()=>{if(document.getElementById('s_date')){document.getElementById('s_date').value=l.date;document.getElementById('s_mood').value=l.mood;document.getElementById('s_content').value=l.content;}},50);document.getElementById('modalSave').onclick=()=>{l.date=v('s_date');l.mood=v('s_mood');l.content=v('s_content');if(!l.content)return showToast('请输入内容');saveData();closeModal();switchTab('personal');showToast('已更新');};}
 
 // ============ 数据备份 ============
@@ -1437,6 +1439,7 @@ let SYNC_SERVER = localStorage.getItem('scx_sync_server') || '';
 let syncTimer = null;
 let syncOnline = false;
 let lastSyncTs = 0;
+let _lastPushTs = parseInt(localStorage.getItem(STORAGE_KEY + '_lastPushTs') || '0');
 let AUTH_TOKEN = localStorage.getItem('scx_auth_token') || '';
 let AUTH_USER = localStorage.getItem('scx_auth_user') || '';
 let loginMode = 'login'; // 'login' or 'register'
@@ -1599,7 +1602,7 @@ function pushToServer(){
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(8000)
   }).then(r => r.json()).then(d => {
-    if (d.ok) { updateSyncBadge('online'); }
+    if (d.ok) { updateSyncBadge('online'); _lastPushTs = Date.now(); localStorage.setItem(STORAGE_KEY + '_lastPushTs', String(_lastPushTs)); }
     if (d.merged) { pullFromServer(true); }
   }).catch(() => { syncOnline = false; updateSyncBadge('offline'); });
 }
@@ -1610,13 +1613,21 @@ function pullFromServer(silent){
     method: 'GET',
     signal: AbortSignal.timeout(8000)
   }).then(r => r.json()).then(d => {
-    if (d.ok && d.data && d.timestamp > lastSyncTs) {
-      DB = deepMergeLocal(DB, d.data);
-      saveLocal(); // save merged data to localStorage (no push loop)
-      lastSyncTs = d.timestamp;
-      updateSyncBadge('online');
-      switchTab(currentTab);
-      if (!silent) showToast('已同步最新数据');
+    if (d.ok && d.data) {
+      if (d.timestamp < _lastPushTs) {
+        // Server data is stale (local has been pushed more recently) → push local to server
+        updateSyncBadge('syncing');
+        pushToServer();
+      } else {
+        DB = deepMergeLocal(DB, d.data);
+        saveLocal();
+        lastSyncTs = d.timestamp;
+        updateSyncBadge('online');
+        switchTab(currentTab);
+        if (!silent) showToast('已同步最新数据');
+        // Push merged result back so server is up to date
+        pushToServer();
+      }
     } else if (d.ok && !d.data && !silent) {
       // Server has no data (e.g. after restart) — push local data to restore
       updateSyncBadge('syncing');
@@ -1637,14 +1648,15 @@ function deepMergeLocal(base, incoming){
       if (incoming[key].length === 0 && Array.isArray(base[key]) && base[key].length > 0) {
         result[key] = base[key];
       } else if (Array.isArray(base[key]) && incoming[key].length > 0 && incoming[key][0] && typeof incoming[key][0].id !== 'undefined') {
-        // Merge arrays by id: base items kept, incoming items updated/added
+        // Merge arrays by id: keep all base items, update common ids from incoming, DON'T add incoming-only items
+        // (incoming-only items could be stale deleted items from a failed push — the local view is authoritative)
         const merged = [...base[key]];
         const baseIds = new Map(merged.map((x, i) => [x.id, i]));
         for (const item of incoming[key]) {
           if (item && typeof item.id !== 'undefined') {
             const idx = baseIds.get(item.id);
             if (idx !== undefined) merged[idx] = item;
-            else { merged.push(item); baseIds.set(item.id, merged.length - 1); }
+            // incoming-only items are NOT added to prevent deleted items from resurrecting
           }
         }
         result[key] = merged;
