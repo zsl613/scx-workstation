@@ -678,7 +678,9 @@ function renderMedia() {
 let medCInst;
 function renderMediaCharts(){
   const ctx=document.getElementById('mediaChart');if(!ctx)return;if(medCInst)medCInst.destroy();
-  const plats=[...new Set(DB.mdata.map(d=>d.plt))];const dates=[...new Set(DB.mdata.map(d=>d.date))].sort();
+  const acctPlats=[...new Set(DB.accounts.map(a=>a.plt))];
+  const plats=acctPlats.length?acctPlats:[...new Set(DB.mdata.map(d=>d.plt))];
+  const dates=[...new Set(DB.mdata.map(d=>d.date))].sort();
   const colors=['#dc2626','#f59e0b','#2563eb','#16a34a'];
   medCInst=new Chart(ctx,{type:'bar',data:{labels:dates,datasets:plats.map((p,i)=>({label:p,data:dates.map(d=>{const x=DB.mdata.find(y=>y.date===d&&y.plt===p);return x?x.views:0}),backgroundColor:colors[i%4],borderRadius:4}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}},scales:{y:{ticks:{font:{size:9}}},x:{ticks:{font:{size:9}}}}}});
 }
@@ -1149,7 +1151,7 @@ function openSheet(type, param) {
     },
     mediaData:{
       title:'记录数据',
-      html:'<div class="form-row"><div class="form-group"><label>平台</label><select id="s_plt">'+DB.accounts.map(a=>'<option>'+a.plt+'</option>').join('')+'</select></div><div class="form-group"><label>日期</label><input id="s_date" type="date" value="'+t+'"></div></div><div class="form-row"><div class="form-group"><label>播放</label><input id="s_views" type="number" value="0"></div><div class="form-group"><label>点赞</label><input id="s_likes" type="number" value="0"></div></div><div class="form-row"><div class="form-group"><label>评论</label><input id="s_cmt" type="number" value="0"></div><div class="form-group"><label>分享</label><input id="s_share" type="number" value="0"></div></div><div class="form-group"><label>新增粉丝</label><input id="s_newf" type="number" value="0"></div>',
+      html:'<div class="form-row"><div class="form-group"><label>平台</label><select id="s_plt">'+[...new Set(DB.accounts.map(a=>a.plt))].map(p=>'<option>'+p+'</option>').join('')+'</select></div><div class="form-group"><label>日期</label><input id="s_date" type="date" value="'+t+'"></div></div><div class="form-row"><div class="form-group"><label>播放</label><input id="s_views" type="number" value="0"></div><div class="form-group"><label>点赞</label><input id="s_likes" type="number" value="0"></div></div><div class="form-row"><div class="form-group"><label>评论</label><input id="s_cmt" type="number" value="0"></div><div class="form-group"><label>分享</label><input id="s_share" type="number" value="0"></div></div><div class="form-group"><label>新增粉丝</label><input id="s_newf" type="number" value="0"></div>',
       save:()=>{DB.mdata.push({id:DB.nid.mdata++,date:v('s_date'),plt:v('s_plt'),views:+v('s_views')||0,likes:+v('s_likes')||0,cmt:+v('s_cmt')||0,share:+v('s_share')||0,newFans:+v('s_newf')||0});saveData();switchTab('media');showToast('数据已记录');}
     },
     log:{

@@ -1104,7 +1104,9 @@ function renderMedia() {
 
   if(chartMediaDailyInst) chartMediaDailyInst.destroy();
   const c3 = document.getElementById('chartMediaDaily'); if(c3){
-    const plats = [...new Set(DB.mdata.map(d=>d.plt))];
+    // 只显示账号矩阵中实际存在的平台
+    const acctPlats = [...new Set(DB.accounts.map(a=>a.plt))];
+    const plats = acctPlats.length ? acctPlats : [...new Set(DB.mdata.map(d=>d.plt))];
     const dates = [...new Set(DB.mdata.map(d=>d.date))].sort();
     const clrs = ['#dc2626','#f59e0b','#2563eb','#16a34a','#8b5cf6'];
     chartMediaDailyInst = new Chart(c3,{type:'bar',data:{labels:dates,datasets:plats.map((p,i)=>({label:p,data:dates.map(d=>{const it=DB.mdata.find(x=>x.date===d&&x.plt===p);return it?it.views:0;}),backgroundColor:clrs[i%clrs.length],borderRadius:4}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
@@ -1389,7 +1391,7 @@ function openModal(type, editId) {
       <div class="form-group"><label>状态</label><select id="f_status"><option>选题中</option><option>待拍摄</option><option>已发布</option></select></div>
     `,save:()=>{ const tp={plt:fv('f_plt'),topic:fv('f_topic'),type:fv('f_type'),status:fv('f_status')}; if(!tp.topic) return showToast('请输入选题'); if(isEdit){ const idx=DB.topics.findIndex(x=>x.id===editId); if(idx>=0){ DB.topics[idx]={...DB.topics[idx],...tp}; } } else { tp.id=DB.nid.topic++; tp.date=today; DB.topics.push(tp); } saveLocal(); renderMedia(); showToast(isEdit?'选题已更新':'已添加'); }},
     mediaData:{title:'记录数据',html:`
-      <div class="form-row"><div class="form-group"><label>平台</label><select id="f_plt">${DB.accounts.map(a=>'<option>'+a.plt+'</option>').join('')}</select></div><div class="form-group"><label>日期</label><input id="f_date" type="date" value="${today}"></div></div>
+      <div class="form-row"><div class="form-group"><label>平台</label><select id="f_plt">${[...new Set(DB.accounts.map(a=>a.plt))].map(p=>'<option>'+p+'</option>').join('')}</select></div><div class="form-group"><label>日期</label><input id="f_date" type="date" value="${today}"></div></div>
       <div class="form-row"><div class="form-group"><label>播放</label><input id="f_views" type="number" value="0"></div><div class="form-group"><label>点赞</label><input id="f_likes" type="number" value="0"></div></div>
       <div class="form-row"><div class="form-group"><label>评论</label><input id="f_cmt" type="number" value="0"></div><div class="form-group"><label>分享</label><input id="f_share" type="number" value="0"></div></div>
       <div class="form-group"><label>新增粉丝</label><input id="f_newf" type="number" value="0"></div>
