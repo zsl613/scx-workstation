@@ -309,6 +309,11 @@ function loadData() {
       if (!p.mediaAdvice) p.mediaAdvice = def.mediaAdvice;
       if (!p.remixIdeas) p.remixIdeas = def.remixIdeas;
       if (!p.monthlyAnalysis) p.monthlyAnalysis = def.monthlyAnalysis;
+      // Merge global category lists (new defaults get appended, user's custom ones preserved)
+      if(!p.incomeCats) p.incomeCats = def.incomeCats;
+      else def.incomeCats.forEach(c=>{ if(!p.incomeCats.includes(c)) p.incomeCats.push(c); });
+      if(!p.expenseCats) p.expenseCats = def.expenseCats;
+      else def.expenseCats.forEach(c=>{ if(!p.expenseCats.includes(c)) p.expenseCats.push(c); });
       // 补齐缺失的财务月份
       const existMonths = new Set((p.finance||[]).map(f=>f.month));
       (def.finance||[]).forEach(f=>{ if(!existMonths.has(f.month)) p.finance.push({...f}); });
@@ -412,6 +417,8 @@ function getDefaultData() {
     ],
     monthlyAnalysis:{lastGenerated:'',months:{}},
     profile:{name:'',role:'管理员',phone:'',email:'',company:'蜀川鑫工作室',avatar:''},
+    incomeCats:['CNC加工','注塑模具','铜电极','特殊零件','模具设计','方案咨询','打样费'],
+    expenseCats:['材料采购','人工工资','设备维护','刀具耗材','表面处理','厂房租金','水电费','运输费','外协加工','办公耗材'],
     nid:{project:5,customer:4,employee:5,equipment:5,finance:6,account:5,topic:4,todo:7,log:2,mdata:5,hotVideo:3,advice:4,remix:3,kbItem:100,transaction:9}
   };
 }
@@ -1107,7 +1114,7 @@ function openSheet(type, param) {
     },
     editFinanceMonth:{
       title:'编辑月度数据',
-      html:'<div class="form-row"><div class="form-group"><label>总收入</label><input id="s_fn_income" type="number"></div><div class="form-group"><label>总支出</label><input id="s_fn_expense" type="number"></div></div><div class="form-group"><label>收入构成（每行：来源,金额）</label><textarea id="s_fn_incbreak" rows="4" placeholder="CNC加工,35000\n注塑模具,40000\n铜电极,22000"></textarea></div><div class="form-group"><label>支出构成（每行：项目,金额）</label><textarea id="s_fn_expbreak" rows="4" placeholder="材料采购,12000\n人工工资,18000\n设备维护,8500"></textarea></div><div style="font-size:11px;color:var(--text-light);">💡 编辑后将自动计算总计，也可手动修改总收入/总支出</div>',
+      html:'<div class="form-row"><div class="form-group"><label>总收入</label><input id="s_fn_income" type="number"></div><div class="form-group"><label>总支出</label><input id="s_fn_expense" type="number"></div></div><div class="form-group"><div style="text-align:center;padding:20px;color:var(--text-light);">正在加载收支构成编辑器...</div></div>',
       save:()=>{}
     },
     bulkTransaction:{
@@ -1314,35 +1321,63 @@ function renderTransactionList(type){
 }
 function editFinanceMonth(month){
   const f=DB.finance.find(x=>x.month===month);if(!f)return;
-  // Ensure breakdown fields exist
   if(!f.incomeBreakdown)f.incomeBreakdown={};
   if(!f.expenseBreakdown)f.expenseBreakdown={};
-  const incBreakStr=Object.entries(f.incomeBreakdown||{}).map(([k,v])=>k+','+v).join('\n');
-  const expBreakStr=Object.entries(f.expenseBreakdown||{}).map(([k,v])=>k+','+v).join('\n');
+  if(!DB.incomeCats)DB.incomeCats=['CNC加工','注塑模具','铜电极'];
+  if(!DB.expenseCats)DB.expenseCats=['材料采购','人工工资','设备维护'];
+
+  function buildBreakRows(type,data,cats){
+    const label=type==='income'?'收入构成':'支出构成';
+    const color=type==='income'?'#16a34a':'#dc2626';
+    const entries=Object.entries(data);
+    const rows=entries.length?entries.map(([k,v],i)=>`
+      <div class="bkr" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
+        <input list="cl_${type}" class="bc_${type}" value="${ke(k)}" placeholder="类别" style="flex:1;min-width:0;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+        <input type="number" class="ba_${type}" value="${v}" placeholder="金额" style="width:85px;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+        <button type="button" class="bdel" style="width:28px;height:28px;border:none;background:#fee2e2;color:#dc2626;border-radius:6px;font-size:14px;cursor:pointer;flex-shrink:0;" title="删除">×</button>
+      </div>`).join(''):'<div class="bkr" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;"><input list="cl_${type}" class="bc_${type}" placeholder="类别" style="flex:1;min-width:0;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;"><input type="number" class="ba_${type}" value="0" placeholder="金额" style="width:85px;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;"><button type="button" class="bdel" style="width:28px;height:28px;border:none;background:#fee2e2;color:#dc2626;border-radius:6px;font-size:14px;cursor:pointer;flex-shrink:0;" title="删除">×</button></div>';
+    return `<div class="form-group"><label style="color:${color};font-weight:600;">${label}</label>
+      <div id="brk_${type}" style="display:flex;flex-direction:column;">${rows}</div>
+      <datalist id="cl_${type}">${cats.map(c=>`<option value="${ke(c)}">`).join('')}</datalist>
+      <button type="button" id="addb_${type}" style="margin-top:4px;width:100%;padding:8px;border:1px dashed var(--border);border-radius:6px;background:transparent;color:var(--text-light);font-size:12px;cursor:pointer;">+ 添加${type==='income'?'收入':'支出'}项</button></div>`;
+  }
+  function ke(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+  const html='<div class="form-row"><div class="form-group"><label>总收入</label><input id="s_fn_income" type="number" value="'+f.income+'"></div><div class="form-group"><label>总支出</label><input id="s_fn_expense" type="number" value="'+f.expense+'"></div></div>'+buildBreakRows('income',f.incomeBreakdown,DB.incomeCats)+buildBreakRows('expense',f.expenseBreakdown,DB.expenseCats)+'<div style="font-size:11px;color:var(--text-light);margin-top:8px;">💡 自由添加/删除类别，自定义类别将自动保存</div>';
+
   openSheet('editFinanceMonth');
   document.getElementById('modalTitle').textContent='编辑 '+month+' 数据';
-  setTimeout(()=>{
-    const fi=document.getElementById('s_fn_income');
-    const fe=document.getElementById('s_fn_expense');
-    const bi=document.getElementById('s_fn_incbreak');
-    const be=document.getElementById('s_fn_expbreak');
-    if(fi)fi.value=f.income;
-    if(fe)fe.value=f.expense;
-    if(bi)bi.value=incBreakStr;
-    if(be)be.value=expBreakStr;
-  },50);
+  document.getElementById('modalBody').innerHTML=html;
+
+  function bindDels(){document.querySelectorAll('.bdel').forEach(b=>{b.onclick=()=>{const r=b.closest('.bkr');if(r)r.remove();}});}
+  bindDels();
+
+  ['income','expense'].forEach(t=>{
+    document.getElementById('addb_'+t).onclick=()=>{
+      const c=document.getElementById('brk_'+t);
+      const row=document.createElement('div');row.className='bkr';
+      row.style.cssText='display:flex;gap:6px;align-items:center;margin-bottom:6px;';
+      row.innerHTML='<input list="cl_'+t+'" class="bc_'+t+'" placeholder="类别" style="flex:1;min-width:0;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;"><input type="number" class="ba_'+t+'" value="0" placeholder="金额" style="width:85px;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:13px;"><button type="button" class="bdel" style="width:28px;height:28px;border:none;background:#fee2e2;color:#dc2626;border-radius:6px;font-size:14px;cursor:pointer;flex-shrink:0;" title="删除">×</button>';
+      c.appendChild(row);bindDels();row.querySelector('.bc_'+t).focus();
+    };
+  });
+
   document.getElementById('modalSave').onclick=()=>{
     f.income=+v('s_fn_income')||0;
     f.expense=+v('s_fn_expense')||0;
-    // Parse income breakdown
     const incBreak={};
-    const incTxt=v('s_fn_incbreak').trim();
-    incTxt.split('\n').forEach(line=>{const p=line.split(',');if(p.length>=2){const k=p[0].trim(),val=+p[1]||0;if(k)incBreak[k]=val;}});
+    document.querySelectorAll('#brk_income .bkr').forEach(r=>{
+      const cat=r.querySelector('.bc_income').value.trim();
+      const amt=+r.querySelector('.ba_income').value||0;
+      if(cat){incBreak[cat]=amt;if(!DB.incomeCats.includes(cat))DB.incomeCats.push(cat);}
+    });
     f.incomeBreakdown=incBreak;
-    // Parse expense breakdown
     const expBreak={};
-    const expTxt=v('s_fn_expbreak').trim();
-    expTxt.split('\n').forEach(line=>{const p=line.split(',');if(p.length>=2){const k=p[0].trim(),val=+p[1]||0;if(k)expBreak[k]=val;}});
+    document.querySelectorAll('#brk_expense .bkr').forEach(r=>{
+      const cat=r.querySelector('.bc_expense').value.trim();
+      const amt=+r.querySelector('.ba_expense').value||0;
+      if(cat){expBreak[cat]=amt;if(!DB.expenseCats.includes(cat))DB.expenseCats.push(cat);}
+    });
     f.expenseBreakdown=expBreak;
     saveData();openSubPage('finance');showToast(month+' 已更新');
   };
