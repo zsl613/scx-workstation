@@ -356,6 +356,7 @@ tr:hover td { background:#f8fafc; }
   <div class="card"><div class="card-title"><span>本周计划</span></div>
     <div class="kanban" style="grid-template-columns:repeat(7,1fr);" id="weekPlanner"></div>
   </div>
+  <div class="card" style="border:1px dashed var(--primary);background:#f8fafc;margin-top:12px;"><div class="card-title"><span>💾 数据备份</span></div><p style="font-size:12px;color:var(--text);margin-bottom:10px;">数据保存在浏览器中（localStorage），建议定期导出备份。更换设备或清理缓存后可从备份文件恢复。</p><div style="display:flex;gap:8px;"><button class="btn btn-primary" style="flex:1;justify-content:center;" onclick="exportData()">📥 导出备份</button><button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="importData()">📤 导入恢复</button></div></div>
 </div>
 
 </div><!-- end main -->
@@ -431,18 +432,37 @@ function loadData() {
     if (s) {
       const d = JSON.parse(s);
       const def = getDefaultData();
+      // Check if this is a real user database
+      const hasRealData = d._v || (d.profile && d.profile.name) || (d.projects && d.projects.length > def.projects.length) || (d.customers && d.customers.length > def.customers.length);
       for(const k in def) { if(!(k in d)) d[k] = def[k]; }
       // 补齐缺失的财务月份
       const existMonths = new Set((d.finance||[]).map(f=>f.month));
       (def.finance||[]).forEach(f=>{ if(!existMonths.has(f.month)) d.finance.push({...f}); });
       if(d.finance) d.finance.sort((a,b)=>a.month.localeCompare(b.month));
+      // Mark as used
+      d._v = d._v || 1;
       return d;
     }
-  } catch(e) {}
+  } catch(e) {
+    console.error('数据加载失败，尝试恢复...', e);
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY + '_backup');
+      if (raw) { const p = JSON.parse(raw); console.log('从备份恢复了数据'); return p; }
+    } catch(e2) {}
+  }
   return getDefaultData();
 }
 
-function saveLocal() { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
+function saveLocal() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
+  // Auto-backup: save a copy every 10 minutes as safety net
+  const lastBackup = localStorage.getItem(STORAGE_KEY + '_backup_ts');
+  const now = Date.now();
+  if (!lastBackup || (now - parseInt(lastBackup)) > 600000) {
+    localStorage.setItem(STORAGE_KEY + '_backup', JSON.stringify(DB));
+    localStorage.setItem(STORAGE_KEY + '_backup_ts', String(now));
+  }
+}
 
 // ==================== Login ====================
 let loginMode = 'login';
@@ -1053,6 +1073,50 @@ function renderPersonal() {
 function toggleTodo(id) { const t=DB.todos.find(x=>x.id===id); if(t){t.status=t.status==='done'?'pending':'done';saveLocal();renderPersonal();} }
 function deleteTodo(id) { if(!confirm('确定删除该待办？')) return; DB.todos=DB.todos.filter(t=>t.id!==id); saveLocal(); renderPersonal(); showToast('已删除'); }
 function deleteLog(id) { if(!confirm('确定删除该日志？')) return; DB.logs=DB.logs.filter(l=>l.id!==id); saveLocal(); renderPersonal(); showToast('已删除'); }
+
+// ============ 数据备份 ============
+function exportData() {
+  const data = JSON.stringify(DB, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '蜀川鑫工作台_备份_' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('数据已导出下载');
+}
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        if (!imported.projects && !imported.customers && !imported.todos) {
+          return showToast('无效的备份文件');
+        }
+        if (!confirm('将用备份文件覆盖当前所有数据，确定继续？\n\n当前数据将被替换，建议先导出备份。')) return;
+        imported.nid = DB.nid;
+        localStorage.setItem(STORAGE_KEY + '_backup', JSON.stringify(DB));
+        DB = imported;
+        saveLocal();
+        renderOverview();
+        showToast('数据已恢复 (' + file.name + ')');
+      } catch(err) {
+        showToast('文件格式错误');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
 
 // ==================== Modal ====================
 function openModal(type, editId) {

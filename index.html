@@ -301,6 +301,9 @@ function loadData() {
     if (d) {
       const p = JSON.parse(d);
       const def = getDefaultData();
+      // Check if this is a real user database (has been used, not just default template)
+      // A used database has at least one of: actual profile data, or more items than defaults
+      const hasRealData = p._v || (p.profile && p.profile.name) || (p.projects && p.projects.length > def.projects.length) || (p.customers && p.customers.length > def.customers.length);
       if (!p.kbData) p.kbData = def.kbData;
       if (!p.hotVideos) p.hotVideos = def.hotVideos;
       if (!p.mediaAdvice) p.mediaAdvice = def.mediaAdvice;
@@ -312,13 +315,35 @@ function loadData() {
       if(p.finance) p.finance.sort((a,b)=>a.month.localeCompare(b.month));
       p.nid = p.nid || {};
       ['hotVideo','advice','remix','kbItem','transaction','topic'].forEach(k => { if(!p.nid[k]) p.nid[k] = def.nid[k] || 1; });
+      // Mark as used (prevent accidental reset)
+      p._v = p._v || 1;
       return p;
     }
-  } catch(e) {}
+  } catch(e) {
+    console.error('数据加载失败，尝试恢复...', e);
+    // Try to recover: if parse failed, backup the raw data before resetting
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY + '_backup');
+      if (raw) {
+        const p = JSON.parse(raw);
+        console.log('从备份恢复了数据');
+        return p;
+      }
+    } catch(e2) {}
+  }
   return getDefaultData();
 }
 function saveData() { saveLocal(); if (syncOnline && AUTH_TOKEN) debouncePush(); }
-function saveLocal() { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); }
+function saveLocal() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
+  // Auto-backup: save a copy every 10 minutes as safety net
+  const lastBackup = localStorage.getItem(STORAGE_KEY + '_backup_ts');
+  const now = Date.now();
+  if (!lastBackup || (now - parseInt(lastBackup)) > 600000) {
+    localStorage.setItem(STORAGE_KEY + '_backup', JSON.stringify(DB));
+    localStorage.setItem(STORAGE_KEY + '_backup_ts', String(now));
+  }
+}
 let pushTimeout = null;
 function debouncePush() { if (pushTimeout) clearTimeout(pushTimeout); pushTimeout = setTimeout(() => { pushToServer(); pushTimeout = null; }, 800); }
 
@@ -987,13 +1012,60 @@ function renderPersonal() {
   return profH+
     '<div class="card"><div class="card-title"><span>待办事项</span><select id="todoFilter" onchange="switchTab(\'personal\')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:11px;background:var(--card);"><option value="all" '+(filter==='all'?'selected':'')+'>全部</option><option value="pending" '+(filter==='pending'?'selected':'')+'>待处理</option><option value="done" '+(filter==='done'?'selected':'')+'>已完成</option><option value="high" '+(filter==='high'?'selected':'')+'>紧急</option></select></div>'+todoH+'</div>'+
     '<div class="card"><div class="card-title"><span>工作日志</span></div>'+logH+'</div>'+
-    '<div class="card"><div class="card-title"><span>本周计划</span></div><div style="display:flex;overflow-x:auto;gap:8px;padding-bottom:6px;-webkit-overflow-scrolling:touch;margin:0 -4px;">'+weekH+'</div></div>';
+    '<div class="card"><div class="card-title"><span>本周计划</span></div><div style="display:flex;overflow-x:auto;gap:8px;padding-bottom:6px;-webkit-overflow-scrolling:touch;margin:0 -4px;">'+weekH+'</div></div>'+
+    '<div class="card" style="border:1px dashed var(--primary);background:#f8fafc;"><div class="card-title"><span>💾 数据备份</span></div><p style="font-size:11px;color:var(--text);margin-bottom:10px;">数据保存在浏览器中，建议定期导出备份。更换设备或清理缓存后可从备份恢复。</p><div style="display:flex;gap:8px;"><button class="btn btn-primary" style="flex:1;justify-content:center;padding:10px;" onclick="exportData()">📥 导出备份</button><button class="btn btn-outline" style="flex:1;justify-content:center;padding:10px;" onclick="importData()">📤 导入恢复</button></div></div>';
 }
 function toggleTodo(id){const t=DB.todos.find(x=>x.id===id);if(t){t.status=t.status==='done'?'pending':'done';saveData();switchTab('personal');}}
 function delTodo(id){DB.todos=DB.todos.filter(t=>t.id!==id);saveData();switchTab('personal');showToast('已删除');}
 function editTodo(id){const t=DB.todos.find(x=>x.id===id);if(!t)return;openSheet('todo');document.getElementById('modalTitle').textContent='编辑待办';setTimeout(()=>{if(document.getElementById('s_txt')){document.getElementById('s_txt').value=t.txt;document.getElementById('s_pri').value=t.pri;document.getElementById('s_cat').value=t.cat;document.getElementById('s_due').value=t.due;}},50);document.getElementById('modalSave').onclick=()=>{t.txt=v('s_txt');t.pri=v('s_pri');t.cat=v('s_cat');t.due=v('s_due');if(!t.txt)return showToast('请输入内容');saveData();closeModal();switchTab('personal');showToast('已更新');};}
 function delLog(id){DB.logs=DB.logs.filter(l=>l.id!==id);saveData();switchTab('personal');showToast('已删除');}
 function editLog(id){const l=DB.logs.find(x=>x.id===id);if(!l)return;openSheet('log');document.getElementById('modalTitle').textContent='编辑日志';setTimeout(()=>{if(document.getElementById('s_date')){document.getElementById('s_date').value=l.date;document.getElementById('s_mood').value=l.mood;document.getElementById('s_content').value=l.content;}},50);document.getElementById('modalSave').onclick=()=>{l.date=v('s_date');l.mood=v('s_mood');l.content=v('s_content');if(!l.content)return showToast('请输入内容');saveData();closeModal();switchTab('personal');showToast('已更新');};}
+
+// ============ 数据备份 ============
+function exportData() {
+  const data = JSON.stringify(DB, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '蜀川鑫工作台_备份_' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('📥 数据已导出下载');
+}
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        if (!imported.projects && !imported.customers && !imported.todos) {
+          return showToast('❌ 无效的备份文件');
+        }
+        if (!confirm('⚠️ 将用备份文件覆盖当前所有数据，确定继续？\n\n当前数据将被替换，建议先导出备份。')) return;
+        // Merge: keep current nid counters to avoid id conflicts
+        imported.nid = DB.nid;
+        // Auto-backup current data before overwriting
+        localStorage.setItem(STORAGE_KEY + '_backup', JSON.stringify(DB));
+        DB = imported;
+        saveLocal();
+        switchTab(currentTab);
+        showToast('✅ 数据已恢复 (' + file.name + ')');
+      } catch(err) {
+        showToast('❌ 文件格式错误');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
 
 // ============ Bottom Sheet Modal ============
 function openSheet(type, param) {
@@ -1468,6 +1540,10 @@ function pullFromServer(silent){
       updateSyncBadge('online');
       switchTab(currentTab);
       if (!silent) showToast('已同步最新数据');
+    } else if (d.ok && !d.data && !silent) {
+      // Server has no data (e.g. after restart) — push local data to restore
+      updateSyncBadge('syncing');
+      pushToServer();
     } else if (d.ok) {
       updateSyncBadge('online');
     }
@@ -1480,7 +1556,11 @@ function deepMergeLocal(base, incoming){
   const result = {};
   for (const key of Object.keys({...base, ...incoming})) {
     if (Array.isArray(incoming[key])) {
-      if (Array.isArray(base[key]) && incoming[key].length > 0 && incoming[key][0] && typeof incoming[key][0].id !== 'undefined') {
+      // Server returned empty array → keep local data
+      if (incoming[key].length === 0 && Array.isArray(base[key]) && base[key].length > 0) {
+        result[key] = base[key];
+      } else if (Array.isArray(base[key]) && incoming[key].length > 0 && incoming[key][0] && typeof incoming[key][0].id !== 'undefined') {
+        // Merge arrays by id: base items kept, incoming items updated/added
         const merged = [...base[key]];
         const baseIds = new Map(merged.map((x, i) => [x.id, i]));
         for (const item of incoming[key]) {
@@ -1491,11 +1571,14 @@ function deepMergeLocal(base, incoming){
           }
         }
         result[key] = merged;
-      } else { result[key] = incoming[key]; }
+      } else {
+        result[key] = incoming[key];
+      }
     } else if (incoming[key] && typeof incoming[key] === 'object' && !Array.isArray(incoming[key])) {
       result[key] = deepMergeLocal(base[key] || {}, incoming[key]);
     } else {
-      result[key] = (incoming[key] !== undefined) ? incoming[key] : base[key];
+      // Keep local value if incoming is empty/null/undefined
+      result[key] = (incoming[key] !== undefined && incoming[key] !== null && incoming[key] !== '') ? incoming[key] : base[key];
     }
   }
   return result;
