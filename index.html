@@ -306,6 +306,10 @@ function loadData() {
       if (!p.mediaAdvice) p.mediaAdvice = def.mediaAdvice;
       if (!p.remixIdeas) p.remixIdeas = def.remixIdeas;
       if (!p.monthlyAnalysis) p.monthlyAnalysis = def.monthlyAnalysis;
+      // 补齐缺失的财务月份
+      const existMonths = new Set((p.finance||[]).map(f=>f.month));
+      (def.finance||[]).forEach(f=>{ if(!existMonths.has(f.month)) p.finance.push({...f}); });
+      if(p.finance) p.finance.sort((a,b)=>a.month.localeCompare(b.month));
       p.nid = p.nid || {};
       ['hotVideo','advice','remix','kbItem','transaction','topic'].forEach(k => { if(!p.nid[k]) p.nid[k] = def.nid[k] || 1; });
       return p;
