@@ -381,6 +381,8 @@ let lastSyncTs = 0;
 let _lastPushTs = parseInt(localStorage.getItem(STORAGE_KEY + '_lastPushTs') || '0');
 let pushTimeout = null;
 let _syncing = false; // prevent push loop during pull
+function markIdsKnown() { const known={};for(const key of Object.keys(DB)){if(Array.isArray(DB[key]) && DB[key].length>0 && DB[key][0] && typeof DB[key][0].id!=='undefined'){known[key]=DB[key].map(x=>x.id);}} localStorage.setItem(STORAGE_KEY+'_knownIds',JSON.stringify(known)); }
+function getKnownIds() { try{return JSON.parse(localStorage.getItem(STORAGE_KEY+'_knownIds')||'{}');}catch(e){return{};} }
 
 function getDefaultKB() {
   return {
@@ -531,7 +533,7 @@ function checkSyncHealth() {
 function startSyncPolling() {
   if (syncTimer) clearInterval(syncTimer);
   syncTimer = setInterval(() => {
-    if (syncOnline) pullFromServer(false);
+    if (syncOnline) pullFromServer(true);
     else checkSyncHealth();
   }, 5000);
 }
@@ -552,6 +554,7 @@ function updateSyncBadge(status) {
 
 function pushToServer() {
   if (!syncOnline || !SYNC_SERVER || !AUTH_TOKEN) return;
+  if (_syncing) return;
   updateSyncBadge('syncing');
   lastSyncTs = Date.now();
   const payload = { db: DB, ts: lastSyncTs, v: 1 };
@@ -561,13 +564,14 @@ function pushToServer() {
     body: JSON.stringify(payload),
     signal: AbortSignal.timeout(8000)
   }).then(r => r.json()).then(d => {
-    if (d.ok) { updateSyncBadge('online'); _lastPushTs = Date.now(); localStorage.setItem(STORAGE_KEY + '_lastPushTs', String(_lastPushTs)); }
+    if (d.ok) { updateSyncBadge('online'); _lastPushTs = Date.now(); localStorage.setItem(STORAGE_KEY + '_lastPushTs', String(_lastPushTs)); markIdsKnown(); }
     if (d.merged) { pullFromServer(true); }
   }).catch(() => { syncOnline = false; updateSyncBadge('offline'); });
 }
 
 function pullFromServer(silent) {
   if (!SYNC_SERVER || !AUTH_TOKEN) return;
+  if (_syncing) return;
   authFetch(SYNC_SERVER + '/api/sync/data', {
     method: 'GET',
     signal: AbortSignal.timeout(8000)
@@ -578,9 +582,11 @@ function pullFromServer(silent) {
         updateSyncBadge('syncing');
         pushToServer();
       } else {
+        // Server has newer data → trust server for deletions, preserve unsynced local additions
         _syncing = true;
-        DB = deepMergeLocal(DB, d.data);
-        saveLocal(); // calls saveLocal but _syncing prevents push loop
+        const known = getKnownIds();
+        DB = deepMergeLocal(DB, d.data, true, known);
+        saveLocal();
         _syncing = false;
         lastSyncTs = d.timestamp;
         updateSyncBadge('online');
@@ -593,8 +599,6 @@ function pullFromServer(silent) {
           else renderOverview();
         }
         if (!silent) showToast('已同步最新数据');
-        // Push merged result back so server is up to date
-        pushToServer();
       }
     } else if (d.ok && !d.data && !silent) {
       updateSyncBadge('syncing');
@@ -605,7 +609,7 @@ function pullFromServer(silent) {
   }).catch(() => { syncOnline = false; updateSyncBadge('offline'); });
 }
 
-function deepMergeLocal(base, incoming) {
+function deepMergeLocal(base, incoming, serverAuthoritative, known) {
   if (!base || typeof base !== 'object') return incoming;
   if (!incoming || typeof incoming !== 'object') return incoming;
   const result = {};
@@ -614,23 +618,35 @@ function deepMergeLocal(base, incoming) {
       if (incoming[key].length === 0 && Array.isArray(base[key]) && base[key].length > 0) {
         result[key] = base[key];
       } else if (Array.isArray(base[key]) && incoming[key].length > 0 && incoming[key][0] && typeof incoming[key][0].id !== 'undefined') {
-        // Merge arrays by id: keep all base items, update common ids from incoming, DON'T add incoming-only items
-        // (incoming-only items could be stale deleted items from a failed push — the local view is authoritative)
-        const merged = [...base[key]];
-        const baseIds = new Map(merged.map((x, i) => [x.id, i]));
-        for (const item of incoming[key]) {
-          if (item && typeof item.id !== 'undefined') {
-            const idx = baseIds.get(item.id);
-            if (idx !== undefined) merged[idx] = item;
-            // incoming-only items are NOT added to prevent deleted items from resurrecting
+        if (serverAuthoritative) {
+          // Server-authoritative: start from server items, only preserve base items NOT in known (unsynced local additions)
+          const merged = [...incoming[key]];
+          const serverIds = new Set(merged.map(x => x.id));
+          const knownIds = known ? new Set((known[key] || [])) : new Set();
+          for (const item of base[key]) {
+            if (item && typeof item.id !== 'undefined' && !serverIds.has(item.id) && !knownIds.has(item.id)) {
+              merged.push(item);
+              serverIds.add(item.id);
+            }
           }
+          result[key] = merged;
+        } else {
+          // Default mode: start from base, update common ids from incoming, DON'T add incoming-only items
+          const merged = [...base[key]];
+          const baseIds = new Map(merged.map((x, i) => [x.id, i]));
+          for (const item of incoming[key]) {
+            if (item && typeof item.id !== 'undefined') {
+              const idx = baseIds.get(item.id);
+              if (idx !== undefined) merged[idx] = item;
+            }
+          }
+          result[key] = merged;
         }
-        result[key] = merged;
       } else {
         result[key] = incoming[key];
       }
     } else if (incoming[key] && typeof incoming[key] === 'object' && !Array.isArray(incoming[key])) {
-      result[key] = deepMergeLocal(base[key] || {}, incoming[key]);
+      result[key] = deepMergeLocal(base[key] || {}, incoming[key], serverAuthoritative, known);
     } else {
       result[key] = (incoming[key] !== undefined) ? incoming[key] : base[key];
     }
