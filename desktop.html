@@ -226,6 +226,7 @@ tr:hover td { background:#f8fafc; }
   </div>
   <div class="sidebar-footer">
     <span id="sidebarUser"></span>
+    <span id="syncBadge" style="display:none;font-size:10px;padding:2px 6px;border-radius:4px;"></span>
     <span class="logout" onclick="handleLogout()">退出</span>
   </div>
 </div>
@@ -376,6 +377,13 @@ const STORAGE_KEY = 'scx_mobile_v2';
 // Same data layer as mobile PWA
 let DB = loadData();
 
+// ==================== Sync System Variables ====================
+let syncOnline = false;
+let syncTimer = null;
+let lastSyncTs = 0;
+let pushTimeout = null;
+let _syncing = false; // prevent push loop during pull
+
 function getDefaultKB() {
   return {
     mech:{title:'机械制造学习',icon:'🔧',desc:'CNC编程 · 加工工艺 · 材料知识 · 刀具选择',sections:[
@@ -469,6 +477,137 @@ function saveLocal() {
     localStorage.setItem(STORAGE_KEY + '_backup', JSON.stringify(DB));
     localStorage.setItem(STORAGE_KEY + '_backup_ts', String(now));
   }
+  // Push to server if online (skip during sync pull to avoid push loop)
+  if (!_syncing && syncOnline && AUTH_TOKEN && SYNC_SERVER) {
+    if (pushTimeout) clearTimeout(pushTimeout);
+    pushTimeout = setTimeout(() => { pushToServer(); pushTimeout = null; }, 800);
+  }
+}
+
+// ==================== Sync System Functions ====================
+function authFetch(url, opts) {
+  opts = opts || {};
+  opts.headers = opts.headers || {};
+  if (AUTH_TOKEN) opts.headers['Authorization'] = 'Bearer ' + AUTH_TOKEN;
+  return fetch(url, opts);
+}
+
+function initSync() {
+  if (!SYNC_SERVER || !AUTH_TOKEN) { updateSyncBadge('none'); return; }
+  checkSyncHealth().then(ok => {
+    if (ok) { pullFromServer(true); startSyncPolling(); }
+  });
+  setTimeout(() => pushToServer(), 2000);
+}
+
+function checkSyncHealth() {
+  return authFetch(SYNC_SERVER + '/api/health', { method: 'GET', signal: AbortSignal.timeout(3000) })
+    .then(r => r.json())
+    .then(d => {
+      if (d.ok) { syncOnline = true; updateSyncBadge('online'); return true; }
+      syncOnline = false; updateSyncBadge('offline'); return false;
+    })
+    .catch(() => { syncOnline = false; updateSyncBadge('offline'); return false; });
+}
+
+function startSyncPolling() {
+  if (syncTimer) clearInterval(syncTimer);
+  syncTimer = setInterval(() => {
+    if (syncOnline) pullFromServer(false);
+    else checkSyncHealth();
+  }, 5000);
+}
+
+function updateSyncBadge(status) {
+  const el = document.getElementById('syncBadge');
+  if (!el) return;
+  if (status === 'online') {
+    el.style.display = 'inline-block'; el.style.background = '#dcfce7'; el.style.color = '#16a34a'; el.textContent = '🟢 已同步';
+  } else if (status === 'syncing') {
+    el.style.display = 'inline-block'; el.style.background = '#fef3c7'; el.style.color = '#f59e0b'; el.textContent = '🟡 同步中';
+  } else if (status === 'none') {
+    el.style.display = 'none';
+  } else {
+    el.style.display = 'inline-block'; el.style.background = '#fee2e2'; el.style.color = '#dc2626'; el.textContent = '🔴 离线';
+  }
+}
+
+function pushToServer() {
+  if (!syncOnline || !SYNC_SERVER || !AUTH_TOKEN) return;
+  updateSyncBadge('syncing');
+  lastSyncTs = Date.now();
+  const payload = { db: DB, ts: lastSyncTs, v: 1 };
+  authFetch(SYNC_SERVER + '/api/sync/data', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(8000)
+  }).then(r => r.json()).then(d => {
+    if (d.ok) { updateSyncBadge('online'); }
+    if (d.merged) { pullFromServer(true); }
+  }).catch(() => { syncOnline = false; updateSyncBadge('offline'); });
+}
+
+function pullFromServer(silent) {
+  if (!SYNC_SERVER || !AUTH_TOKEN) return;
+  authFetch(SYNC_SERVER + '/api/sync/data', {
+    method: 'GET',
+    signal: AbortSignal.timeout(8000)
+  }).then(r => r.json()).then(d => {
+    if (d.ok && d.data && d.timestamp > lastSyncTs) {
+      _syncing = true;
+      DB = deepMergeLocal(DB, d.data);
+      saveLocal(); // calls saveLocal but _syncing prevents push loop
+      _syncing = false;
+      lastSyncTs = d.timestamp;
+      updateSyncBadge('online');
+      // Refresh current active page after sync
+      const ap = document.querySelector('.page.active');
+      if (ap) {
+        const pn = ap.id.replace('page-', '');
+        const refreshers = { overview: renderOverview, finance: renderFinance, media: renderMedia, knowledge: renderKnowledge, customers: renderCustomers, personal: renderPersonal };
+        if (refreshers[pn]) refreshers[pn]();
+        else renderOverview();
+      }
+      if (!silent) showToast('已同步最新数据');
+    } else if (d.ok && !d.data && !silent) {
+      updateSyncBadge('syncing');
+      pushToServer();
+    } else if (d.ok) {
+      updateSyncBadge('online');
+    }
+  }).catch(() => { syncOnline = false; updateSyncBadge('offline'); });
+}
+
+function deepMergeLocal(base, incoming) {
+  if (!base || typeof base !== 'object') return incoming;
+  if (!incoming || typeof incoming !== 'object') return incoming;
+  const result = {};
+  for (const key of Object.keys({...base, ...incoming})) {
+    if (Array.isArray(incoming[key])) {
+      if (incoming[key].length === 0 && Array.isArray(base[key]) && base[key].length > 0) {
+        result[key] = base[key];
+      } else if (Array.isArray(base[key]) && incoming[key].length > 0 && incoming[key][0] && typeof incoming[key][0].id !== 'undefined') {
+        const merged = [...base[key]];
+        const baseIds = new Map(merged.map((x, i) => [x.id, i]));
+        for (const item of incoming[key]) {
+          if (item && typeof item.id !== 'undefined') {
+            const idx = baseIds.get(item.id);
+            if (idx !== undefined) merged[idx] = item;
+            else { merged.push(item); baseIds.set(item.id, merged.length - 1); }
+          }
+        }
+        result[key] = merged;
+      } else {
+        result[key] = incoming[key];
+      }
+    } else if (incoming[key] && typeof incoming[key] === 'object' && !Array.isArray(incoming[key])) {
+      result[key] = deepMergeLocal(base[key] || {}, incoming[key]);
+    } else {
+      result[key] = (incoming[key] !== undefined) ? incoming[key] : base[key];
+    }
+  }
+  return result;
 }
 
 // ==================== Login ====================
@@ -525,6 +664,8 @@ function handleLogout() {
   if(confirm('确定退出登录？本地数据不会丢失。')) {
     if(SYNC_SERVER&&AUTH_TOKEN) fetch(SYNC_SERVER+'/api/auth/logout',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+AUTH_TOKEN}}).catch(()=>{});
     AUTH_TOKEN=''; AUTH_USER='';
+    syncOnline = false; if (syncTimer) { clearInterval(syncTimer); syncTimer = null; }
+    updateSyncBadge('none');
     localStorage.removeItem('scx_auth_token');
     localStorage.removeItem('scx_auth_user');
     document.getElementById('loginOverlay').style.display='flex';
@@ -540,7 +681,7 @@ function enterApp() {
   document.getElementById('sidebarUser').textContent = AUTH_USER;
   initDate();
   renderOverview();
-  setTimeout(() => fetchDailyHotspot(), 3000);
+  setTimeout(() => { fetchDailyHotspot(); initSync(); }, 3000);
 }
 
 // ==================== Navigation ====================
