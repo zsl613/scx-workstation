@@ -1125,7 +1125,16 @@ function openSheet(type, param) {
 }
 
 function renderKBItemForm(param) {
-  if(!param||param.indexOf(':')===-1)return '<div class="empty"><p>参数错误</p></div>';
+  if(!param||param.indexOf(':')===-1){
+    let opts='<option value="">请选择分类和章节</option>';
+    for(const cat in DB.kbData){
+      const kb=DB.kbData[cat];
+      kb.sections.forEach((sec,si)=>{
+        opts+='<option value="'+cat+':'+si+'">'+(kb.icon||'📚')+' '+kb.title+' · '+sec.h+'</option>';
+      });
+    }
+    return '<div class="form-group"><label>选择分类</label><select id="s_kbselect">'+opts+'</select></div><div class="form-group"><label>条目内容</label><textarea id="s_kbitem" rows="4" placeholder="输入知识条目..."></textarea></div>';
+  }
   const parts=param.split(':');
   const cat=parts[0];const si=+parts[1];
   const kb=DB.kbData[cat];if(!kb)return '<div class="empty"><p>未找到分类</p></div>';
@@ -1134,11 +1143,17 @@ function renderKBItemForm(param) {
   return '<div class="form-group"><label>分类: '+kb.sections[si].h+'</label></div><div class="form-group"><label>条目内容</label><textarea id="s_kbitem" rows="4" placeholder="输入知识条目..."></textarea></div>';
 }
 function saveKBItem(param) {
-  const parts=param.split(':');const cat=parts[0];const si=+parts[1];
+  let cat,si;
+  if(!param||param.indexOf(':')===-1){
+    const sel=v('s_kbselect');
+    if(!sel)return showToast('请选择分类');
+    const p=sel.split(':');cat=p[0];si=+p[1];
+  }else{
+    const parts=param.split(':');cat=parts[0];si=+parts[1];
+    if(parts.length===3){const ii=+parts[2];const txt=v('s_kbitem');if(!txt)return showToast('请输入内容');DB.kbData[cat].sections[si].items[ii]=txt;saveData();openSubPage('kb',cat);showToast('已更新');return;}
+  }
   const txt=v('s_kbitem');if(!txt)return showToast('请输入内容');
-  if(parts.length===3){const ii=+parts[2];DB.kbData[cat].sections[si].items[ii]=txt;}
-  else{DB.kbData[cat].sections[si].items.push(txt);}
-  saveData();openSubPage('kb',cat);showToast(parts.length===3?'已更新':'已添加');
+  DB.kbData[cat].sections[si].items.push(txt);saveData();switchTab('knowledge');showToast('已添加');
 }
 
 function closeModal(){document.getElementById('modalOverlay').classList.remove('show');}
