@@ -811,24 +811,51 @@ function editFinanceMonth(month){
   if(!DB.incomeCats)DB.incomeCats=['CNC加工','注塑模具','铜电极'];
   if(!DB.expenseCats)DB.expenseCats=['材料采购','人工工资','设备维护'];
 
-  function buildBreakRows(type,data,cats){
+  // Build a single breakdown row HTML (select + custom input + amount + delete)
+  function rowHtml(type,cats,cat,amt){
+    amt=amt||0;
+    const isCustom=cats.length>0&&!cats.includes(cat)&&cat!=='';
+    const esc=function(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');};
+    const opts=cats.map(c=>'<option value="'+esc(c)+'"'+(c===cat?' selected':'')+'>'+esc(c)+'</option>').join('');
+    return '<div class="bkr" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;margin-bottom:8px;">'
+      +'<select class="bc_'+type+'" onchange="_dtci(this,\'cst_'+type+'\')" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--bg-card);">'
+      +'<option value="">选择类别</option>'+opts+'<option value="__custom__">✏️ 自定义...</option></select>'
+      +'<input class="cst_'+type+'" placeholder="输入自定义类别" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--primary);border-radius:6px;font-size:13px;display:'+(isCustom?'block':'none')+'" value="'+(isCustom?esc(cat):'')+'">'
+      +'<input type="number" class="ba_'+type+'" value="'+amt+'" placeholder="金额" style="width:100px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">'
+      +'<button type="button" class="bdel" style="width:30px;height:30px;border:none;background:#fee2e2;color:#dc2626;border-radius:6px;font-size:16px;cursor:pointer;flex-shrink:0;" title="删除">×</button></div>';
+  }
+
+  function buildSection(type,data,cats){
     const label=type==='income'?'收入构成':'支出构成';
     const color=type==='income'?'#16a34a':'#dc2626';
     const entries=Object.entries(data);
-    const rows=entries.length?entries.map(([k,v])=>`
-      <div class="bkr" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-        <input list="cl_${type}" class="bc_${type}" value="${ke(k)}" placeholder="类别" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
-        <input type="number" class="ba_${type}" value="${v}" placeholder="金额" style="width:100px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
-        <button type="button" class="bdel" style="width:30px;height:30px;border:none;background:#fee2e2;color:#dc2626;border-radius:6px;font-size:16px;cursor:pointer;flex-shrink:0;" title="删除">×</button>
-      </div>`).join(''):'<div class="bkr" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;"><input list="cl_${type}" class="bc_${type}" placeholder="类别" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;"><input type="number" class="ba_${type}" value="0" placeholder="金额" style="width:100px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;"><button type="button" class="bdel" style="width:30px;height:30px;border:none;background:#fee2e2;color:#dc2626;border-radius:6px;font-size:16px;cursor:pointer;flex-shrink:0;" title="删除">×</button></div>';
-    return `<div class="form-group"><label style="color:${color};font-weight:600;">${label}</label>
-      <div id="brk_${type}" style="display:flex;flex-direction:column;">${rows}</div>
-      <datalist id="cl_${type}">${cats.map(c=>`<option value="${ke(c)}">`).join('')}</datalist>
-      <button type="button" id="addb_${type}" style="margin-top:4px;width:100%;padding:8px;border:1px dashed var(--border);border-radius:6px;background:transparent;color:var(--text-light);font-size:13px;cursor:pointer;">+ 添加${type==='income'?'收入':'支出'}项</button></div>`;
+    const rowsHtml=entries.length?entries.map(([k,v])=>rowHtml(type,cats,k,v)).join('')
+      :rowHtml(type,cats,'',0);
+    return '<div class="form-group"><label style="color:'+color+';font-weight:600;">'+label+'</label>'
+      +'<div id="brk_'+type+'" style="display:flex;flex-direction:column;">'+rowsHtml+'</div>'
+      +'<button type="button" id="addb_'+type+'" style="margin-top:4px;width:100%;padding:8px;border:1px dashed var(--border);border-radius:6px;background:transparent;color:var(--text-light);font-size:13px;cursor:pointer;">+ 添加'+ (type==='income'?'收入':'支出')+'项</button></div>';
+  }
+
+  function readCat(r,type){
+    const sel=r.querySelector('.bc_'+type);
+    const cst=r.querySelector('.cst_'+type);
+    if(sel.value==='__custom__'||(sel.value===''&&cst.style.display!=='none')){
+      return cst.value.trim();
+    }
+    return sel.value;
   }
   function ke(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  window._dtci=function(sel,cstCls){
+    const r=sel.closest('.bkr');
+    const cst=r.querySelector('.'+cstCls);
+    if(sel.value==='__custom__'){cst.style.display='block';cst.focus();}
+    else{cst.style.display='none';}
+  };
 
-  const html='<input type="hidden" id="f_fin_month" value="'+month+'"><div class="form-row"><div class="form-group"><label>总收入</label><input id="f_fin_income" type="number" value="'+f.income+'"></div><div class="form-group"><label>总支出</label><input id="f_fin_expense" type="number" value="'+f.expense+'"></div></div>'+buildBreakRows('income',f.incomeBreakdown,DB.incomeCats)+buildBreakRows('expense',f.expenseBreakdown,DB.expenseCats)+'<div style="font-size:11px;color:var(--text-light);margin-top:12px;">💡 自由添加/删除类别，自定义类别将自动保存到全局列表</div>';
+  const html='<input type="hidden" id="f_fin_month" value="'+month+'"><div class="form-row"><div class="form-group"><label>总收入</label><input id="f_fin_income" type="number" value="'+f.income+'"></div><div class="form-group"><label>总支出</label><input id="f_fin_expense" type="number" value="'+f.expense+'"></div></div>'
+    +buildSection('income',f.incomeBreakdown,DB.incomeCats)
+    +buildSection('expense',f.expenseBreakdown,DB.expenseCats)
+    +'<div style="font-size:11px;color:var(--text-light);margin-top:12px;">💡 下拉选择已有类别，或选"✏️ 自定义"输入新类别</div>';
 
   openModal('editFinanceMonth');
   document.getElementById('modalTitle').textContent='编辑 '+month+' 数据';
@@ -841,8 +868,10 @@ function editFinanceMonth(month){
     document.getElementById('addb_'+t).onclick=()=>{
       const c=document.getElementById('brk_'+t);
       const row=document.createElement('div');row.className='bkr';
-      row.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:8px;';
-      row.innerHTML='<input list="cl_'+t+'" class="bc_'+t+'" placeholder="类别" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;"><input type="number" class="ba_'+t+'" value="0" placeholder="金额" style="width:100px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;"><button type="button" class="bdel" style="width:30px;height:30px;border:none;background:#fee2e2;color:#dc2626;border-radius:6px;font-size:16px;cursor:pointer;flex-shrink:0;" title="删除">×</button>';
+      row.style.cssText='display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;margin-bottom:8px;';
+      const cats=DB[t+'Cats'];
+      const opts=cats.map(n=>'<option value="'+n.replace(/"/g,'&quot;')+'">'+n.replace(/</g,'&lt;')+'</option>').join('');
+      row.innerHTML='<select class="bc_'+t+'" onchange="_dtci(this,\'cst_'+t+'\')" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--bg-card);"><option value="">选择类别</option>'+opts+'<option value="__custom__">✏️ 自定义...</option></select><input class="cst_'+t+'" placeholder="输入自定义类别" style="flex:1;min-width:0;padding:8px 10px;border:1px solid var(--primary);border-radius:6px;font-size:13px;display:none;"><input type="number" class="ba_'+t+'" value="0" placeholder="金额" style="width:100px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;"><button type="button" class="bdel" style="width:30px;height:30px;border:none;background:#fee2e2;color:#dc2626;border-radius:6px;font-size:16px;cursor:pointer;flex-shrink:0;" title="删除">×</button>';
       c.appendChild(row);bindDels();row.querySelector('.bc_'+t).focus();
     };
   });
@@ -852,14 +881,14 @@ function editFinanceMonth(month){
     f.expense=+fv('f_fin_expense')||0;
     const incBreak={};
     document.querySelectorAll('#brk_income .bkr').forEach(r=>{
-      const cat=r.querySelector('.bc_income').value.trim();
+      const cat=readCat(r,'income');
       const amt=+r.querySelector('.ba_income').value||0;
       if(cat){incBreak[cat]=amt;if(!DB.incomeCats.includes(cat))DB.incomeCats.push(cat);}
     });
     f.incomeBreakdown=incBreak;
     const expBreak={};
     document.querySelectorAll('#brk_expense .bkr').forEach(r=>{
-      const cat=r.querySelector('.bc_expense').value.trim();
+      const cat=readCat(r,'expense');
       const amt=+r.querySelector('.ba_expense').value||0;
       if(cat){expBreak[cat]=amt;if(!DB.expenseCats.includes(cat))DB.expenseCats.push(cat);}
     });
