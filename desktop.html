@@ -317,9 +317,6 @@ tr:hover td { background:#f8fafc; }
     </div>
   </div>
   <div class="grid-2">
-    <div class="card"><div class="card-title"><span>每日数据</span><button class="btn btn-outline btn-sm" onclick="openModal('mediaData')">+ 记录</button></div>
-      <div class="chart-container-lg"><canvas id="chartMediaDaily"></canvas></div>
-    </div>
     <div class="card"><div class="card-title"><span>选题管理</span><button class="btn btn-outline btn-sm" onclick="openModal('topic')">+ 添加</button></div>
       <div style="max-height:320px;overflow-y:auto;"><table><thead><tr><th>日期</th><th>平台</th><th>选题</th><th>类型</th><th>状态</th><th>操作</th></tr></thead><tbody id="topicTable"></tbody></table></div>
     </div>
@@ -1053,7 +1050,6 @@ function deleteCustomer(id) { if(!confirm('确定删除该客户？')) return; D
 function deleteEmployee(id) { if(!confirm('确定删除该员工？')) return; DB.employees=DB.employees.filter(e=>e.id!==id); saveLocal(); renderCustomers(); showToast('已删除'); }
 
 // ==================== Media ====================
-let chartMediaDailyInst;
 
 function renderMedia() {
   const pIcons = {抖音:'🎵',快手:'⚡',小红书:'📕',B站:'📺','微信视频号':'💬'};
@@ -1102,15 +1098,6 @@ function renderMedia() {
     <tr><td>${t.date}</td><td>${t.plt}</td><td>${t.topic}</td><td>${t.type}</td><td><span class="badge ${t.status==='已发布'?'badge-green':t.status==='待拍摄'?'badge-amber':'badge-blue'}">${t.status}</span></td><td style="white-space:nowrap;"><button class="btn btn-sm btn-outline" onclick="openModal('topic',${t.id})">编辑</button> <button class="btn btn-sm btn-outline" onclick="deleteTopic(${t.id})" style="color:#dc2626;">删除</button></td></tr>
   `).join('')||'<tr><td colspan="6" style="text-align:center;color:var(--text-light);">暂无选题</td></tr>';
 
-  if(chartMediaDailyInst) chartMediaDailyInst.destroy();
-  const c3 = document.getElementById('chartMediaDaily'); if(c3){
-    // 只显示账号矩阵中实际存在的平台
-    const acctPlats = [...new Set(DB.accounts.map(a=>a.plt))];
-    const plats = acctPlats.length ? acctPlats : [...new Set(DB.mdata.map(d=>d.plt))];
-    const dates = [...new Set(DB.mdata.map(d=>d.date))].sort();
-    const clrs = ['#dc2626','#f59e0b','#2563eb','#16a34a','#8b5cf6'];
-    chartMediaDailyInst = new Chart(c3,{type:'bar',data:{labels:dates,datasets:plats.map((p,i)=>({label:p,data:dates.map(d=>{const it=DB.mdata.find(x=>x.date===d&&x.plt===p);return it?it.views:0;}),backgroundColor:clrs[i%clrs.length],borderRadius:4}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}});
-  }
   // Update hotspot info
   setTimeout(() => {
     const hd = localStorage.getItem('scx_hotspot_date');
