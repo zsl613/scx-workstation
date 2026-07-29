@@ -844,11 +844,12 @@ function renderMedia() {
   document.getElementById('hotVideosList').innerHTML = DB.hotVideos.slice().reverse().slice(0,3).map(v=>`
     <div class="hot-item">
       <div style="flex:1;">
-        <div style="font-size:13px;font-weight:500;">${v.title}</div>
+        <div style="font-size:13px;font-weight:500;">${v.link ? `<a href="${v.link}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">${v.title} 🔗</a>` : v.title}</div>
         <div style="font-size:11px;color:var(--text-light);">${v.author} · ${v.plt} · ${v.views}播放 · ${v.likes}赞</div>
         ${v.note?`<div style="font-size:11px;color:var(--primary);margin-top:2px;">💡 ${v.note}</div>`:''}
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;justify-content:center;">
+        ${v.link ? `<a href="${v.link}" target="_blank" rel="noopener" class="btn btn-sm btn-outline" style="padding:2px 8px;font-size:11px;text-decoration:none;color:var(--primary);">查看</a>` : ''}
         <button class="btn btn-sm btn-outline" onclick="openModal('hotVideo',${v.id})" style="padding:2px 8px;font-size:11px;">✏️</button>
         <button class="btn btn-sm btn-outline" onclick="deleteHotVideo(${v.id})" style="padding:2px 8px;font-size:11px;color:#dc2626;">🗑️</button>
       </div>
@@ -1193,7 +1194,7 @@ async function fetchDailyHotspot(force) {
       if (!existTitles.has(v.title)) {
         DB.hotVideos.unshift({
           id: Date.now() + Math.random() * 10000 | 0,
-          plt: v.plt || 'B站', title: v.title, author: v.author || '',
+          plt: v.plt || '抖音', title: v.title, author: v.author || '',
           views: v.views || '0', likes: v.likes || '0',
           link: v.link || '', note: v.note || '', date: today
         });

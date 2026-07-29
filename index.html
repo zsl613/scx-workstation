@@ -689,7 +689,7 @@ async function fetchDailyHotspot(force) {
       if (!existTitles.has(v.title)) {
         DB.hotVideos.unshift({
           id: Date.now() + Math.random() * 10000 | 0,
-          plt: v.plt || 'B站',
+          plt: v.plt || '抖音',
           title: v.title,
           author: v.author || '',
           views: v.views || '0',

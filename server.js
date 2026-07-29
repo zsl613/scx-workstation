@@ -379,26 +379,30 @@ function pickRandom(arr, n) {
   return shuffled.slice(0, n);
 }
 
-async function fetchBilibiliHot() {
+async function fetchDouyinHot() {
   try {
-    const resp = await fetch('https://api.bilibili.com/x/web-interface/popular?ps=15', {
+    const resp = await fetch('https://www.douyin.com/aweme/v1/web/hot/search/list/?detail_list=1&count=15', {
       signal: AbortSignal.timeout(8000),
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; scx-workstation/1.0)' }
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://www.douyin.com/',
+        'Accept': 'application/json'
+      }
     });
     const data = await resp.json();
-    if (data.code === 0 && data.data && data.data.list) {
-      return data.data.list.slice(0, 10).map(v => ({
-        plt: 'B站',
-        title: v.title,
-        author: v.owner?.name || '未知',
-        views: (v.stat?.view || 0).toString(),
-        likes: (v.stat?.like || 0).toString(),
-        link: 'https://www.bilibili.com/video/' + v.bvid,
-        note: v.tname ? '#' + v.tname + ' — 可参考此方向创作CNC相关内容' : ''
+    if (data.data && data.data.word_list) {
+      return data.data.word_list.slice(0, 10).map(w => ({
+        plt: '抖音',
+        title: w.word || '',
+        author: '抖音热榜',
+        views: (w.hot_value || 0).toString(),
+        likes: '',
+        link: 'https://www.douyin.com/search/' + encodeURIComponent(w.word || ''),
+        note: '🔥 抖音热搜 — 可结合此话题创作CNC相关内容'
       }));
     }
   } catch (e) {
-    console.log('B站热点获取失败:', e.message);
+    console.log('抖音热点获取失败:', e.message);
   }
   return null;
 }
@@ -409,16 +413,16 @@ function generateCncHotVideos() {
   const dateStr = `${y}-${m}-${d}`;
 
   const templates = [
-    { plt: 'B站', title: '【2026最新】CNC加工参数大全，老师傅30年经验总结', author: '数控老张', views: '3.2万', likes: '2800', note: '参数分享类内容一直高播放，可做参数对比系列' },
-    { plt: 'B站', title: '五轴加工如此丝滑，看完极度舒适', author: '智造前线', views: '8.5万', likes: '1.2万', note: '视觉冲击类内容容易上热门，建议拍加工过程近景' },
-    { plt: 'B站', title: '从图纸到成品：一个模具的完整加工过程', author: '模具人老李', views: '5.1万', likes: '4200', note: '完整加工流程展示，适合做长视频+短视频切片' },
-    { plt: 'B站', title: '新手必看！UG编程入门到精通第1集', author: 'UG编程教学', views: '2.8万', likes: '3500', note: '教程类内容长尾流量好，可以做系列连载' },
-    { plt: 'B站', title: '车间实拍：铝合金高速加工太解压了', author: '机械加工日记', views: '6.8万', likes: '8900', note: '解压类内容在各平台都有高传播性' },
-    { plt: 'B站', title: '刀具磨损到报废全过程，看完你还敢乱用刀吗', author: '刀具达人', views: '4.3万', likes: '5600', note: '科普+警示类内容，教育意义+视觉冲击双赢' },
-    { plt: 'B站', title: '这台国产CNC精度怎么样？实测给你看', author: '国产机床评测', views: '7.2万', likes: '1.1万', note: '国产设备评测话题热度上升，可结合自家设备做测评' },
-    { plt: 'B站', title: '模具抛光前vs抛光后，差距太大了', author: '模具佬阿强', views: '3.5万', likes: '4800', note: '前后对比类内容天然适合短视频平台传播' },
-    { plt: 'B站', title: `今日车间${d}号：紧急加单到凌晨，机加工人的一天`, author: '老罗CNC', views: '2.1万', likes: '1900', note: 'Vlog形式展示机加工日常，增强人设真实感' },
-    { plt: 'B站', title: '注塑模具设计避坑指南：这5个错误新手必犯', author: '模具设计进阶', views: '3.9万', likes: '3200', note: '避坑/踩坑类内容天然高互动率' },
+    { plt: '抖音', title: '【2026最新】CNC加工参数大全，老师傅30年经验总结', author: '数控老张', views: '3.2万', likes: '2800', link: 'https://www.douyin.com/search/CNC加工参数', note: '参数分享类内容一直高播放，可做参数对比系列' },
+    { plt: '抖音', title: '五轴加工如此丝滑，看完极度舒适', author: '智造前线', views: '8.5万', likes: '1.2万', link: 'https://www.douyin.com/search/五轴加工', note: '视觉冲击类内容容易上热门，建议拍加工过程近景' },
+    { plt: '抖音', title: '从图纸到成品：一个模具的完整加工过程', author: '模具人老李', views: '5.1万', likes: '4200', link: 'https://www.douyin.com/search/模具加工', note: '完整加工流程展示，适合做长视频+短视频切片' },
+    { plt: '抖音', title: '新手必看！UG编程入门到精通第1集', author: 'UG编程教学', views: '2.8万', likes: '3500', link: 'https://www.douyin.com/search/UG编程', note: '教程类内容长尾流量好，可以做系列连载' },
+    { plt: '抖音', title: '车间实拍：铝合金高速加工太解压了', author: '机械加工日记', views: '6.8万', likes: '8900', link: 'https://www.douyin.com/search/铝合金加工', note: '解压类内容在各平台都有高传播性' },
+    { plt: '抖音', title: '刀具磨损到报废全过程，看完你还敢乱用刀吗', author: '刀具达人', views: '4.3万', likes: '5600', link: 'https://www.douyin.com/search/刀具', note: '科普+警示类内容，教育意义+视觉冲击双赢' },
+    { plt: '抖音', title: '这台国产CNC精度怎么样？实测给你看', author: '国产机床评测', views: '7.2万', likes: '1.1万', link: 'https://www.douyin.com/search/CNC精度', note: '国产设备评测话题热度上升，可结合自家设备做测评' },
+    { plt: '抖音', title: '模具抛光前vs抛光后，差距太大了', author: '模具佬阿强', views: '3.5万', likes: '4800', link: 'https://www.douyin.com/search/模具抛光', note: '前后对比类内容天然适合短视频平台传播' },
+    { plt: '抖音', title: `今日车间${d}号：紧急加单到凌晨，机加工人的一天`, author: '老罗CNC', views: '2.1万', likes: '1900', link: 'https://www.douyin.com/search/机加工日常', note: 'Vlog形式展示机加工日常，增强人设真实感' },
+    { plt: '抖音', title: '注塑模具设计避坑指南：这5个错误新手必犯', author: '模具设计进阶', views: '3.9万', likes: '3200', link: 'https://www.douyin.com/search/模具设计避坑', note: '避坑/踩坑类内容天然高互动率' },
   ];
 
   return templates;
@@ -462,11 +466,11 @@ app.get('/api/hotspot/daily', async (req, res) => {
     return res.json({ ok: true, data: hotspotCache[today], cached: true });
   }
 
-  // Try B站 real data first
-  const bilibiliHot = await fetchBilibiliHot();
+  // Try 抖音 real data first
+  const douyinHot = await fetchDouyinHot();
 
-  const hotVideos = bilibiliHot && bilibiliHot.length >= 5
-    ? bilibiliHot
+  const hotVideos = douyinHot && douyinHot.length >= 5
+    ? douyinHot
     : generateCncHotVideos();
 
   const remixIdeas = generateRemixIdeas();
@@ -478,7 +482,7 @@ app.get('/api/hotspot/daily', async (req, res) => {
     remixIdeas,
     mediaAdvice,
     generatedAt: Date.now(),
-    source: bilibiliHot ? 'B站实时' : '智能生成'
+    source: douyinHot ? '抖音实时' : '智能生成'
   };
 
   hotspotCache[today] = data;
@@ -497,9 +501,9 @@ app.post('/api/hotspot/daily', async (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
   delete hotspotCache[today]; // force regenerate
 
-  const bilibiliHot = await fetchBilibiliHot();
-  const hotVideos = bilibiliHot && bilibiliHot.length >= 5
-    ? bilibiliHot
+  const douyinHot = await fetchDouyinHot();
+  const hotVideos = douyinHot && douyinHot.length >= 5
+    ? douyinHot
     : generateCncHotVideos();
 
   const data = {
@@ -508,7 +512,7 @@ app.post('/api/hotspot/daily', async (req, res) => {
     remixIdeas: generateRemixIdeas(),
     mediaAdvice: generateMediaAdvice(),
     generatedAt: Date.now(),
-    source: bilibiliHot ? 'B站实时' : '智能生成'
+    source: douyinHot ? '抖音实时' : '智能生成'
   };
 
   hotspotCache[today] = data;
