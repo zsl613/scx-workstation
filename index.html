@@ -1556,7 +1556,6 @@ function initSync(){
   checkSyncHealth().then(ok => {
     if (ok) { pullFromServer(true); startSyncPolling(); }
   });
-  setTimeout(() => pushToServer(), 2000);
 }
 
 function checkSyncHealth(){
@@ -1588,6 +1587,9 @@ function updateSyncBadge(status){
     if (statusEl) { statusEl.textContent = '🟡 同步中...'; statusEl.className = 'sync-status syncing'; }
   } else if (status === 'none') {
     if (badge) badge.style.display = 'none';
+  } else if (status === 'waiting') {
+    if (badge) { badge.style.display = 'inline-block'; badge.style.background = '#e0f2fe'; badge.style.color = '#0284c7'; badge.textContent = '🔵 等待同步'; }
+    if (statusEl) { statusEl.textContent = '🔵 等待数据同步 · 请先在已录入数据的设备上打开工作台'; statusEl.className = 'sync-status waiting'; }
   } else {
     if (badge) { badge.style.display = 'inline-block'; badge.style.background = '#fee2e2'; badge.style.color = '#dc2626'; badge.textContent = '🔴 离线'; }
     if (statusEl) { statusEl.textContent = '🔴 无法连接同步服务器 · 数据仅保存在本地'; statusEl.className = 'sync-status offline'; }
@@ -1621,6 +1623,8 @@ function hasRealUserData() {
 function pushToServer(){
   if (!syncOnline || !SYNC_SERVER || !AUTH_TOKEN) return;
   if (_syncing) return;
+  // Safety: never push default template data to server — would overwrite real data after Render restart
+  if (!hasRealUserData()) return;
   updateSyncBadge('syncing');
   lastSyncTs = Date.now();
   const payload = { db: DB, ts: lastSyncTs, v: 1 };
@@ -1669,15 +1673,15 @@ function pullFromServer(silent){
         }
       }
     } else if (d.ok && !d.data) {
-      // Server has no data (e.g. after Render restart) — push local data to restore
-      // Always run, even in silent mode, to recover from server data loss
-      // Only push if local DB actually has user data (not just fresh defaults)
+      // Server has no data (e.g. after Render restart)
       if (hasRealUserData()) {
+        // Local has real data → push to restore server
         updateSyncBadge('syncing');
         pushToServer();
         if (!silent) showToast('检测到服务器数据为空，已从本地恢复');
       } else {
-        updateSyncBadge('online');
+        // Neither server nor local has real data — waiting for first sync
+        updateSyncBadge('waiting');
       }
     } else if (d.ok) {
       updateSyncBadge('online');

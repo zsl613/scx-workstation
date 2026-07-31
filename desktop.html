@@ -517,7 +517,6 @@ function initSync() {
   checkSyncHealth().then(ok => {
     if (ok) { pullFromServer(true); startSyncPolling(); }
   });
-  setTimeout(() => pushToServer(), 2000);
 }
 
 function checkSyncHealth() {
@@ -547,6 +546,8 @@ function updateSyncBadge(status) {
     el.style.display = 'inline-block'; el.style.background = '#fef3c7'; el.style.color = '#f59e0b'; el.textContent = '🟡 同步中';
   } else if (status === 'none') {
     el.style.display = 'none';
+  } else if (status === 'waiting') {
+    el.style.display = 'inline-block'; el.style.background = '#e0f2fe'; el.style.color = '#0284c7'; el.textContent = '🔵 等待同步';
   } else {
     el.style.display = 'inline-block'; el.style.background = '#fee2e2'; el.style.color = '#dc2626'; el.textContent = '🔴 离线';
   }
@@ -578,6 +579,8 @@ function hasRealUserData() {
 function pushToServer() {
   if (!syncOnline || !SYNC_SERVER || !AUTH_TOKEN) return;
   if (_syncing) return;
+  // Safety: never push default template data to server — would overwrite real data after Render restart
+  if (!hasRealUserData()) return;
   updateSyncBadge('syncing');
   lastSyncTs = Date.now();
   const payload = { db: DB, ts: lastSyncTs, v: 1 };
@@ -633,15 +636,15 @@ function pullFromServer(silent) {
         }
       }
     } else if (d.ok && !d.data) {
-      // Server has no data (e.g. after Render restart) — push local data to restore
-      // Always run, even in silent mode, to recover from server data loss
-      // Only push if local DB actually has user data (not just fresh defaults)
+      // Server has no data (e.g. after Render restart)
       if (hasRealUserData()) {
+        // Local has real data → push to restore server
         updateSyncBadge('syncing');
         pushToServer();
         if (!silent) showToast('检测到服务器数据为空，已从本地恢复');
       } else {
-        updateSyncBadge('online');
+        // Neither server nor local has real data — waiting for first sync
+        updateSyncBadge('waiting');
       }
     } else if (d.ok) {
       updateSyncBadge('online');
