@@ -552,6 +552,29 @@ function updateSyncBadge(status) {
   }
 }
 
+function hasRealUserData() {
+  // Check if local DB has actual user-entered data (not just default template)
+  const def = getDefaultData();
+  if (DB.projects && DB.projects.length > def.projects.length) return true;
+  if (DB.customers && DB.customers.length > def.customers.length) return true;
+  if (DB.transactions && DB.transactions.length > def.transactions.length) return true;
+  if (DB.todos && DB.todos.length > def.todos.length) return true;
+  if (DB.finance && DB.finance.length > def.finance.length) return true;
+  // Also check if any item has been modified (content differs from default)
+  if (DB.projects && DB.projects.length === def.projects.length) {
+    for (let i = 0; i < DB.projects.length; i++) {
+      if (DB.projects[i].name !== def.projects[i].name || DB.projects[i].status !== def.projects[i].status) return true;
+    }
+  }
+  if (DB.customers && DB.customers.length === def.customers.length) {
+    for (let i = 0; i < DB.customers.length; i++) {
+      if (DB.customers[i].name !== def.customers[i].name) return true;
+    }
+  }
+  if (DB.profile && DB.profile.name) return true;
+  return false;
+}
+
 function pushToServer() {
   if (!syncOnline || !SYNC_SERVER || !AUTH_TOKEN) return;
   if (_syncing) return;
@@ -609,9 +632,17 @@ function pullFromServer(silent) {
           if (!silent) showToast('已同步最新数据');
         }
       }
-    } else if (d.ok && !d.data && !silent) {
-      updateSyncBadge('syncing');
-      pushToServer();
+    } else if (d.ok && !d.data) {
+      // Server has no data (e.g. after Render restart) — push local data to restore
+      // Always run, even in silent mode, to recover from server data loss
+      // Only push if local DB actually has user data (not just fresh defaults)
+      if (hasRealUserData()) {
+        updateSyncBadge('syncing');
+        pushToServer();
+        if (!silent) showToast('检测到服务器数据为空，已从本地恢复');
+      } else {
+        updateSyncBadge('online');
+      }
     } else if (d.ok) {
       updateSyncBadge('online');
     }
