@@ -914,10 +914,25 @@ function renderProjects() {
   `).join('')||'<div style="text-align:center;padding:20px;color:var(--text-light);">暂无设备</div>';
 }
 
+function recordProjectToFinance(p) {
+  const m = new Date().toISOString().slice(0,7);
+  let f = DB.finance.find(x=>x.month===m);
+  if(!f) {
+    f = {id:(DB.finance.length?Math.max(...DB.finance.map(x=>x.id)):0)+1,month:m,income:0,expense:0,incomeBreakdown:[],expenseBreakdown:[]};
+    DB.finance.push(f);
+  }
+  f.income += p.budget||0;
+  f.incomeBreakdown = f.incomeBreakdown||[];
+  const catIdx = f.incomeBreakdown.findIndex(b=>b.cat===p.name);
+  if(catIdx>=0) f.incomeBreakdown[catIdx].amount += p.budget||0;
+  else f.incomeBreakdown.push({cat:p.name, amount:p.budget||0});
+  const tid = (DB.transactions.length?Math.max(...DB.transactions.map(x=>x.id)):0)+1;
+  DB.transactions.push({id:tid, date:new Date().toISOString().slice(0,10), type:'income', amount:p.budget||0, source:p.name, client:p.client||'', note:'项目完成交付'});
+}
 function advanceProject(id) {
   const p = DB.projects.find(x=>x.id===id); if(!p) return;
   const order = ['quote','produce','qc','done']; const idx = order.indexOf(p.status);
-  if(idx<order.length-1){ p.status = order[idx+1]; p.progress = p.status==='done'?100:(p.progress||0)+25; saveLocal(); renderProjects(); showToast('已推进'); }
+  if(idx<order.length-1){ p.status = order[idx+1]; p.progress = p.status==='done'?100:(p.progress||0)+25; if(p.status==='done'&&p.budget>0){ recordProjectToFinance(p); } saveLocal(); renderProjects(); showToast('已推进'); }
 }
 
 function deleteProject(id) { if(!confirm('确定删除该项目？')) return; DB.projects=DB.projects.filter(p=>p.id!==id); saveAndPush(); renderProjects(); showToast('已删除'); }
@@ -1417,7 +1432,7 @@ function openModal(type, editId) {
       <div class="form-row"><div class="form-group"><label>客户</label><input id="f_client"></div><div class="form-group"><label>预算</label><input id="f_budget" type="number" value="0"></div></div>
       <div class="form-row"><div class="form-group"><label>状态</label><select id="f_status"><option value="quote">报价中</option><option value="produce">生产中</option><option value="qc">质检中</option><option value="done">已交付</option></select></div><div class="form-group"><label>截止日期</label><input id="f_deadline" type="date"></div></div>
       <div class="form-group"><label>备注</label><textarea id="f_notes" rows="2"></textarea></div>
-    `,save:()=>{ const p={name:fv('f_name'),client:fv('f_client'),status:fv('f_status'),deadline:fv('f_deadline'),budget:+fv('f_budget')||0,notes:fv('f_notes')}; if(!p.name) return showToast('请输入项目名称'); if(isEdit){ const idx=DB.projects.findIndex(x=>x.id===editId); if(idx>=0){ p.progress=DB.projects[idx].progress; if(p.status==='done') p.progress=100; DB.projects[idx]={...DB.projects[idx],...p}; } } else { p.id=DB.nid.project++; p.progress=p.status==='done'?100:0; DB.projects.push(p); } saveLocal(); renderProjects(); showToast(isEdit?'项目已更新':'项目已添加'); }},
+    `,save:()=>{ const p={name:fv('f_name'),client:fv('f_client'),status:fv('f_status'),deadline:fv('f_deadline'),budget:+fv('f_budget')||0,notes:fv('f_notes')}; if(!p.name) return showToast('请输入项目名称'); if(isEdit){ const idx=DB.projects.findIndex(x=>x.id===editId); if(idx>=0){ const oldStatus=DB.projects[idx].status; p.progress=DB.projects[idx].progress; if(p.status==='done') p.progress=100; DB.projects[idx]={...DB.projects[idx],...p}; if(p.status==='done'&&oldStatus!=='done'&&p.budget>0){ recordProjectToFinance(DB.projects[idx]); } } } else { p.id=DB.nid.project++; p.progress=p.status==='done'?100:0; DB.projects.push(p); if(p.status==='done'&&p.budget>0){ recordProjectToFinance(p); } } saveLocal(); renderProjects(); showToast(isEdit?'项目已更新':'项目已添加'); }},
     customer:{title:isEdit?'编辑客户':'添加客户',html:`
       <div class="form-row"><div class="form-group"><label>姓名</label><input id="f_name"></div><div class="form-group"><label>公司</label><input id="f_company"></div></div>
       <div class="form-row"><div class="form-group"><label>电话</label><input id="f_phone"></div><div class="form-group"><label>累计金额</label><input id="f_amount" type="number" value="0"></div></div>
